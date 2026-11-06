@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f1f3f9" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#05091d" media="(prefers-color-scheme: dark)">
+<title>League Asset History</title>
+<link rel="icon" href="icons/icon-192.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="League History">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<style>
+:root{--bg:#f1f3f9;--card:#fff;--bd:#d5d9e8;--fg:#05091d;--mut:#4a5170;--ac:#2f5bec;--tag:#e3e6f0;--hit:#e2e8ff;--line:#9aa3bf}
+@media (prefers-color-scheme:dark){:root{--bg:#05091d;--card:#0e1430;--bd:#232b52;--fg:#eef1ff;--mut:#a3acd6;--ac:#6c93ff;--tag:#1b2350;--hit:#16224f;--line:#3a4580}}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{font:16px/1.4 Inter,system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--bg);color:var(--fg);padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+main{max-width:520px;margin:0 auto;padding:16px}
+h1{font-size:1.4rem;margin:4px 0 12px;letter-spacing:-.01em}
+h2{font-size:1.5rem;margin:6px 0 0;letter-spacing:-.01em}
+a{color:var(--ac);text-decoration:none;font-weight:600}
+input{width:100%;font:inherit;padding:12px 14px;border:1px solid var(--bd);border-radius:10px;background:var(--card);color:var(--fg)}
+input:focus-visible,a:focus-visible{outline:2px solid var(--ac);outline-offset:2px}
+.hint,.sub{color:var(--mut);font-size:.85rem;margin:2px 0 14px}
+.results{list-style:none;margin:12px 0 0;padding:0}
+.res{display:flex;gap:10px;align-items:center;min-height:48px;padding:8px 10px;margin-bottom:6px;background:var(--card);border:1px solid var(--bd);border-radius:10px;color:var(--fg);font-weight:500}
+.res small{display:block;color:var(--mut);font-weight:400;font-size:.78rem}
+.av{position:relative;overflow:hidden;width:28px;height:28px;border-radius:50%;flex:none;display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;background:var(--tag);color:var(--fg)}
+.av.sq{border-radius:7px}
+.av img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:var(--tag)}
+.spine{position:relative;margin-top:6px}
+.spine::before{content:"";position:absolute;left:50%;top:0;bottom:0;width:2px;margin-left:-1px;background:var(--line)}
+.c{text-align:center;position:relative}
+.pill{display:inline-block;font-size:.78rem;font-weight:600;padding:5px 11px;border-radius:99px;background:var(--card);border:1px solid var(--bd);color:var(--fg)}
+.pill.now{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.gap{height:14px}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:8px 0 14px;position:relative}
+.side{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:9px;min-width:0}
+.th{display:flex;gap:7px;align-items:center;margin-bottom:2px}
+.team{font-size:.78rem;font-weight:700;line-height:1.2}.lbl{font-size:.7rem;color:var(--mut)}
+.asset{display:flex;gap:7px;align-items:center;padding:7px;margin-top:6px;border-radius:8px;background:var(--bg);color:var(--fg);font-size:.82rem;font-weight:500;min-height:44px}
+.asset .nm{min-width:0}.asset small{display:block;font-size:.7rem;color:var(--mut);font-weight:400}
+.asset small.bec{color:var(--ac);font-weight:600}
+.hit{background:var(--hit);outline:2px solid var(--ac)}
+.none{font-size:.75rem;color:var(--mut);padding:8px 2px}
+.badge{position:absolute;left:50%;top:50%;width:28px;height:28px;margin:-14px;border-radius:50%;background:var(--ac);display:flex;align-items:center;justify-content:center}
+.node{display:inline-flex;width:32px;height:32px;border-radius:9px;background:var(--ac);color:var(--bg);align-items:center;justify-content:center}
+.hero{background:var(--fg);color:var(--bg);border-radius:16px;padding:16px;text-align:center;margin:8px 0 14px;position:relative}
+.hero a{color:var(--bg)}
+.hero .hl{font-size:.78rem;font-weight:600;opacity:.85}
+.hero .big{display:flex;justify-content:center;margin:12px 0 8px}
+.hero .big .av{width:64px;height:64px;font-size:18px;background:var(--ac);color:var(--bg)}
+.hero .hn{font-size:1.25rem;font-weight:700}
+.hero .hs{font-size:.8rem;opacity:.85}
+.hero .chips{display:flex;justify-content:center;gap:8px;margin:12px 0}
+.hero .chips span{padding:5px 10px;border-radius:99px;font-size:.78rem;font-weight:600;background:color-mix(in srgb,var(--bg) 18%,transparent)}
+footer{margin-top:28px;font-size:.78rem;color:var(--mut)}
+</style>
+</head>
+<body>
+<main>
+  <h1>League Asset History</h1>
+  <div id="app"><p class="hint">Loading…</p></div>
+  <footer id="foot"></footer>
+</main>
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const ord = n => ({1:"1st",2:"2nd",3:"3rd"}[n] || n + "th");
+const fmt = ms => ms ? new Date(ms).toLocaleDateString(undefined, {year:"numeric", month:"short", day:"numeric"}) : "";
+const ARROW = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg>`;
+const TICKET = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 7h16v3a2 2 0 0 0 0 4v3H4v-3a2 2 0 0 0 0-4z"/></svg>`;
+let D, ITEMS = [];
+
+/* ---------- lookups ---------- */
+function teamObj(season, rid) {
+  const t = D.teams[season]?.[rid];
+  if (t) return t;
+  for (const s of Object.keys(D.teams).sort().reverse()) if (D.teams[s][rid]) return D.teams[s][rid];
+  return {name: "Team " + rid};
+}
+const team = (s, rid) => teamObj(s, rid).name;
+const pname = pid => D.players[pid]?.name || pid;
+const pickKey = p => `${p.season}-${p.round}-${p.roster_id}`;
+const pickLabel = k => { const [s, r, o] = k.split("-"); return `${s} ${ord(+r)}-round pick (orig. ${team(s, o)})`; };
+
+/* ---------- faces (image over initials; a failed image just disappears) ---------- */
+const ini = n => String(n).split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]).join("").toUpperCase();
+const av = (src, name, sq) => `<span class="av${sq ? " sq" : ""}">${esc(ini(name))}${src ? `<img src="${esc(src)}" alt="" loading="lazy" onerror="this.remove()">` : ""}</span>`;
+const headshot = pid => av(`https://sleepercdn.com/content/nfl/players/thumb/${pid}.jpg`, pname(pid));
+const teamAv = (s, rid) => { const t = teamObj(s, rid); return av(t.avatar ? `https://sleepercdn.com/avatars/thumbs/${t.avatar}` : null, t.name); };
+
+function assetHtml(a, hit) {
+  let icon, name, sub = "", href = "", extra = "";
+  if (a.kind === "player") {
+    const p = D.players[a.id] || {};
+    icon = headshot(a.id); name = pname(a.id); sub = [p.pos, p.team].filter(Boolean).join(" · "); href = "#player/" + a.id;
+  } else if (a.kind === "pick") {
+    const [s, r, o] = a.key.split("-");
+    icon = `<span class="av sq">${TICKET}</span>`; name = `${s} ${ord(+r)}`; sub = "orig. " + team(s, o); href = "#pick/" + a.key;
+    const d = D.draft_results[a.key];
+    if (d) extra = `<small class="bec">→ ${esc(pname(d.player_id))}</small>`;
+  } else { icon = `<span class="av">$</span>`; name = `$${a.amount} FAAB`; }
+  const tag = href ? "a" : "div";
+  return `<${tag} class="asset${hit ? " hit" : ""}"${href ? ` href="${esc(href)}"` : ""}>${icon}<span class="nm">${esc(name)}${sub ? `<small>${esc(sub)}</small>` : ""}${extra}</span></${tag}>`;
+}
+
+/* ---------- trades: left = what the sender got back, right = what the receiver got ---------- */
+function receipts(t) {
+  const m = {}, add = (rid, a) => (m[rid] = m[rid] || []).push(a);
+  for (const [pid, rid] of Object.entries(t.adds)) add(rid, {kind: "player", id: pid});
+  for (const p of t.picks) add(p.to, {kind: "pick", key: pickKey(p)});
+  for (const w of t.faab) add(w.to, {kind: "faab", amount: w.amount});
+  return m;
+}
+function tradeRow(t, from, to, isTracked) {
+  const rc = receipts(t);
+  const col = (rid, label, empty) => `<div class="side"><div class="th">${teamAv(t.season, rid)}<div><div class="team">${esc(team(t.season, rid))}</div><div class="lbl">${label}</div></div></div>
+    ${(rc[rid] || []).map(a => assetHtml(a, isTracked(a))).join("") || `<div class="none">${empty}</div>`}</div>`;
+  const n = Object.keys(rc).length;
+  return `<div class="c"><span class="pill">${esc(fmt(t.created))}</span></div>
+    <div class="row">${col(from, "Sent it for", "Nothing back")}${col(to, "Acquired", "")}<span class="badge" aria-hidden="true">${ARROW}</span></div>
+    ${n > 2 ? `<div class="sub c" style="margin-top:-8px">${n}-team trade: showing the two teams on this asset’s path</div>` : ""}`;
+}
+const pill = (txt, cls = "", href = "") => `<div class="c"><${href ? "a" : "span"} class="pill ${cls}"${href ? ` href="${esc(href)}"` : ""}>${esc(txt)}</${href ? "a" : "span"}></div><div class="gap"></div>`;
+
+/* ---------- views ---------- */
+function draftHero(key, d) {
+  const n = Object.keys(D.teams[d.league_season] || {}).length || 12;
+  const slot = d.pick_no ? d.pick_no - (d.round - 1) * n : null;
+  const p = D.players[d.player_id] || {};
+  const pickTxt = slot > 0 ? `Pick ${d.round}.${String(slot).padStart(2, "0")}` : `Round ${d.round}`;
+  const head = av(`https://sleepercdn.com/content/nfl/players/thumb/${d.player_id}.jpg`, pname(d.player_id));
+  return `<div class="c"><span class="node" aria-hidden="true">${TICKET}</span></div>
+    <div class="hero"><div class="hl">Draft selection · ${esc(fmt(d.time))}</div>
+      <div class="big">${head}</div>
+      <a class="hn" href="#player/${esc(d.player_id)}">${esc(pname(d.player_id))}</a>
+      <div class="hs">${esc([p.pos, p.team].filter(Boolean).join(" · "))}</div>
+      <div class="chips"><span>${esc(pickTxt)}</span><span>${esc(team(d.league_season, d.by))}</span></div>
+      <div class="hs">Used the ${esc(pickLabel(key))}</div></div>`;
+}
+
+/* One chronology: pick origin -> pick trades -> draft -> player moves.
+   Works from a pick (continues into the player it became) or a player (reaches back to the pick). */
+function chain(key, pid) {
+  let d = key ? D.draft_results[key] : null;
+  if (d && !pid) pid = d.player_id;
+  if (!key && pid) {
+    const mine = Object.entries(D.draft_results).filter(([, x]) => x.player_id === pid).sort((a, b) => a[1].time - b[1].time);
+    if (mine.length) { key = mine[0][0]; d = mine[0][1]; }
+  }
+  let html = "", holder = null, trades = 0;
+  if (key) {
+    const [s, r, o] = key.split("-");
+    html += pill(`${s} ${ord(+r)} · started with ${team(s, o)}`);
+    holder = team(s, o);
+    const pre = [];
+    for (const t of D.transactions) if (t.type === "trade") for (const p of t.picks)
+      if (pickKey(p) === key) pre.push({time: t.created, html: tradeRow(t, p.from, p.to, a => a.kind === "pick" && a.key === key), holder: team(t.season, p.to)});
+    pre.sort((a, b) => a.time - b.time);
+    for (const e of pre) { html += e.html; holder = e.holder; trades++; }
+    if (d) { html += draftHero(key, d); holder = team(d.league_season, d.by); }
+  }
+  if (pid) {
+    const post = [];
+    for (const [k, x] of Object.entries(D.draft_results))
+      if (x.player_id === pid && k !== key)
+        post.push({time: x.time, html: pill(`Drafted ${x.season} R${x.round} · ${team(x.league_season, x.by)}`, "", "#pick/" + k), holder: team(x.league_season, x.by)});
+    for (const t of D.transactions) {
+      const to = t.adds[pid], from = t.drops[pid];
+      if (to == null && from == null) continue;
+      if (t.type === "trade") post.push({time: t.created, trade: true, html: tradeRow(t, from, to, a => a.kind === "player" && a.id === pid), holder: team(t.season, to)});
+      else if (to != null) post.push({time: t.created, html: pill(`${fmt(t.created)} · Added by ${team(t.season, to)} (${t.type.replace("_", " ")})`), holder: team(t.season, to)});
+      else post.push({time: t.created, html: pill(`${fmt(t.created)} · Dropped by ${team(t.season, from)}`), holder: null});
+    }
+    post.sort((a, b) => a.time - b.time);
+    for (const e of post) { html += e.html; holder = e.holder; if (e.trade) trades++; }
+  }
+  return {html, holder, trades};
+}
+const nowPill = c => pill(c.holder ? "Now: " + c.holder : "Not on a roster", "now");
+
+function viewPlayer(pid) {
+  const p = D.players[pid] || {name: pid}, c = chain(null, pid);
+  $("#app").innerHTML = `<a href="#">← Search</a><h2>${esc(p.name)}</h2>
+    <div class="sub">${esc([p.pos, p.team].filter(Boolean).join(" · "))}${p.pos || p.team ? " · " : ""}${c.trades} trade${c.trades === 1 ? "" : "s"} in this league</div>
+    <div class="spine">${c.html}${nowPill(c)}</div>`;
+}
+
+function viewPick(key) {
+  const [s, r, o] = key.split("-"), c = chain(key, null), d = D.draft_results[key];
+  $("#app").innerHTML = `<a href="#">← Search</a><h2>${esc(s + " " + ord(+r) + "-round pick")}</h2>
+    <div class="sub">Originally ${esc(team(s, o))} · ${c.trades} trade${c.trades === 1 ? "" : "s"}${d ? " · became " + esc(pname(d.player_id)) : ""}</div>
+    <div class="spine">${c.html}${nowPill(c)}</div>`;
+}
+
+function viewSearch(q = "") {
+  $("#app").innerHTML = `<input id="q" type="search" placeholder="Search a player or pick (e.g. “2026 1st”)" autocomplete="off" value="${esc(q)}">
+    <ul class="results" id="res"></ul>`;
+  $("#q").addEventListener("input", e => renderResults(e.target.value));
+  renderResults(q);
+}
+function renderResults(q) {
+  const words = q.toLowerCase().split(/\s+/).filter(Boolean), res = $("#res");
+  if (!words.length) { res.innerHTML = `<li class="hint">Type a player name, or a pick like “2025 2nd”.</li>`; return; }
+  const hits = ITEMS.filter(i => words.every(w => i.hay.includes(w))).slice(0, 40);
+  res.innerHTML = hits.length
+    ? hits.map(i => `<li><a class="res" href="#${i.type}/${esc(i.id)}">${i.icon}<span>${esc(i.label)}<small>${esc(i.tag)}</small></span></a></li>`).join("")
+    : `<li class="hint">No matches.</li>`;
+}
+
+function route() {
+  const [type, ...rest] = location.hash.slice(1).split("/"), id = rest.join("/");
+  if (type === "player" && id) { viewPlayer(id); window.scrollTo(0, 0); }
+  else if (type === "pick" && id) { viewPick(id); window.scrollTo(0, 0); }
+  else viewSearch();
+}
+
+/* ---------- boot ---------- */
+function buildItems() {
+  const pids = new Set(), keys = new Set();
+  for (const t of D.transactions) {
+    Object.keys(t.adds).forEach(p => pids.add(p));
+    Object.keys(t.drops).forEach(p => pids.add(p));
+    t.picks.forEach(p => keys.add(pickKey(p)));
+  }
+  for (const [k, d] of Object.entries(D.draft_results)) { pids.add(d.player_id); keys.add(k); }
+  for (const pid of pids) {
+    const p = D.players[pid] || {name: pid}, tag = [p.pos, p.team].filter(Boolean).join(" · ");
+    ITEMS.push({type: "player", id: pid, label: p.name, tag, icon: headshot(pid), hay: (p.name + " " + tag).toLowerCase()});
+  }
+  [...keys].sort().reverse().forEach(k => {
+    const [, r] = k.split("-"), label = pickLabel(k);
+    ITEMS.push({type: "pick", id: k, label, tag: D.draft_results[k] ? "Became " + pname(D.draft_results[k].player_id) : "Pick",
+      icon: `<span class="av sq">${TICKET}</span>`, hay: (label + " " + ord(+r) + " round " + r).toLowerCase()});
+  });
+}
+
+if ("serviceWorker" in navigator) addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
+
+fetch("history.json")
+  .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
+  .then(data => {
+    D = data; buildItems();
+    $("#foot").textContent = "Data updated " + fmt(Date.parse(D.generated));
+    addEventListener("hashchange", route); route();
+  })
+  .catch(() => { $("#app").innerHTML = `<p class="hint">Couldn’t load history.json. Run crawl.py first, and serve this folder over http (not file://).</p>`; });
+</script>
+</body>
+</html>
