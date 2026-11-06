@@ -47,6 +47,13 @@ def crawl_league(league_id, out):
             teams[str(r["roster_id"])] = {"name": name, "owner_id": r.get("owner_id"), "avatar": u.get("avatar")}
         out["teams"][season] = teams
 
+        # Newest league only: who owns every traded future pick right now
+        if out["current"] is None:
+            out["current"] = {"season": season, "league_id": league_id,
+                              "rounds": int((lg.get("settings") or {}).get("draft_rounds") or 4)}
+            for tp in get(f"/league/{league_id}/traded_picks") or []:
+                out["pick_owners"][f"{tp['season']}-{tp['round']}-{tp['roster_id']}"] = tp["owner_id"]
+
         # Every completed transaction (trades, waivers, free agents, commish moves)
         seen = set()
         for week in range(0, 19):
@@ -78,6 +85,13 @@ def crawl_league(league_id, out):
                         for w in t.get("waiver_budget") or []
                     ],
                 })
+
+        # Weekly points per player, keyed "season-week-roster_id" (while on that roster)
+        for week in range(1, 19):
+            for m in get(f"/league/{league_id}/matchups/{week}") or []:
+                vals = {pid: round(v, 1) for pid, v in (m.get("players_points") or {}).items() if v}
+                if vals:
+                    out["points"][f"{season}-{week}-{m['roster_id']}"] = vals
 
         # Drafts: link each pick slot back to its original owner
         for d in get(f"/league/{league_id}/drafts") or []:
@@ -126,7 +140,8 @@ def main():
     out_path = sys.argv[2] if len(sys.argv) > 2 else os.path.join("site", "history.json")
 
     out = {"generated": datetime.now(timezone.utc).isoformat(), "teams": {},
-           "transactions": [], "draft_results": {}, "players": {}}
+           "transactions": [], "draft_results": {}, "players": {},
+           "points": {}, "pick_owners": {}, "current": None}
     crawl_league(league_id, out)
     attach_players(out)
     out["transactions"].sort(key=lambda t: t["created"])
