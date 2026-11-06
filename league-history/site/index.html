@@ -58,12 +58,36 @@ input:focus-visible,a:focus-visible{outline:2px solid var(--ac);outline-offset:2
 .hero .hs{font-size:.8rem;opacity:.85}
 .hero .chips{display:flex;justify-content:center;gap:8px;margin:12px 0}
 .hero .chips span{padding:5px 10px;border-radius:99px;font-size:.78rem;font-weight:600;background:color-mix(in srgb,var(--bg) 18%,transparent)}
+.chips{display:flex;gap:8px;margin:0 0 14px;overflow-x:auto}
+.chip{flex:none;padding:7px 12px;border-radius:99px;font-size:.8rem;font-weight:600;border:1px solid var(--bd);background:var(--card);color:var(--fg)}
+.chip.on{background:var(--ac);border-color:var(--ac);color:var(--bg)}
+.card2{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:12px;margin-bottom:12px}
+.ttl{font-weight:700;font-size:.85rem;margin-bottom:6px}
+.dr{display:flex;gap:8px;align-items:center;padding:9px 0;border-top:1px solid var(--bd);color:var(--fg);font-weight:500;font-size:.85rem}
+.dr .no{width:34px;font-size:.75rem;font-weight:700;color:var(--mut)}
+.dr .nm{flex:1;min-width:0}.dr small{display:block;font-size:.72rem;color:var(--mut);font-weight:400}
+.dr .rt{text-align:right;font-size:.75rem}.dr .rt small{color:var(--ac);font-weight:600}
+.pbw{overflow-x:auto}
+.pb{display:grid;grid-template-columns:minmax(120px,1.6fr) repeat(var(--r),minmax(46px,1fr));align-items:center;text-align:center;border-top:1px solid var(--bd);padding:7px 0;font-size:.78rem}
+.pb.h{border:0;color:var(--mut);font-size:.7rem}
+.pb .tn{display:flex;gap:6px;align-items:center;text-align:left;font-weight:600;min-width:0}
+.pb .tn span:last-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mut{color:var(--mut)}
+.chipt{display:inline-block;background:var(--ac);color:var(--bg);border-radius:6px;padding:3px 7px;margin:1px;font-size:.7rem;font-weight:700}
+.pt{margin-left:auto;font-size:.8rem;padding-left:6px}
+.tot{font-size:1.75rem;font-weight:700}
+.bar{display:flex;height:10px;border-radius:5px;overflow:hidden;margin:10px 0;background:var(--tag)}
+.bar i{background:var(--ac)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.pi{display:block;line-height:1.15;margin:3px 0}
+.pp{display:block;font-size:.65rem;color:var(--mut)}
 footer{margin-top:28px;font-size:.78rem;color:var(--mut)}
 </style>
 </head>
 <body>
 <main>
   <h1>League Asset History</h1>
+  <nav id="nav" class="chips"></nav>
   <div id="app"><p class="hint">Loading…</p></div>
   <footer id="foot"></footer>
 </main>
@@ -94,7 +118,7 @@ const av = (src, name, sq) => `<span class="av${sq ? " sq" : ""}">${esc(ini(name
 const headshot = pid => av(`https://sleepercdn.com/content/nfl/players/thumb/${pid}.jpg`, pname(pid));
 const teamAv = (s, rid) => { const t = teamObj(s, rid); return av(t.avatar ? `https://sleepercdn.com/avatars/thumbs/${t.avatar}` : null, t.name); };
 
-function assetHtml(a, hit) {
+function assetHtml(a, hit, val = "") {
   let icon, name, sub = "", href = "", extra = "";
   if (a.kind === "player") {
     const p = D.players[a.id] || {};
@@ -106,7 +130,7 @@ function assetHtml(a, hit) {
     if (d) extra = `<small class="bec">→ ${esc(pname(d.player_id))}</small>`;
   } else { icon = `<span class="av">$</span>`; name = `$${a.amount} FAAB`; }
   const tag = href ? "a" : "div";
-  return `<${tag} class="asset${hit ? " hit" : ""}"${href ? ` href="${esc(href)}"` : ""}>${icon}<span class="nm">${esc(name)}${sub ? `<small>${esc(sub)}</small>` : ""}${extra}</span></${tag}>`;
+  return `<${tag} class="asset${hit ? " hit" : ""}"${href ? ` href="${esc(href)}"` : ""}>${icon}<span class="nm">${esc(name)}${sub ? `<small>${esc(sub)}</small>` : ""}${extra}</span>${val ? `<b class="pt">${esc(val)}</b>` : ""}</${tag}>`;
 }
 
 /* ---------- trades: left = what the sender got back, right = what the receiver got ---------- */
@@ -122,7 +146,7 @@ function tradeRow(t, from, to, isTracked) {
   const col = (rid, label, empty) => `<div class="side"><div class="th">${teamAv(t.season, rid)}<div><div class="team">${esc(team(t.season, rid))}</div><div class="lbl">${label}</div></div></div>
     ${(rc[rid] || []).map(a => assetHtml(a, isTracked(a))).join("") || `<div class="none">${empty}</div>`}</div>`;
   const n = Object.keys(rc).length;
-  return `<div class="c"><span class="pill">${esc(fmt(t.created))}</span></div>
+  return `<div class="c"><a class="pill" href="#trade/${esc(t.id)}">${esc(fmt(t.created))} · points ›</a></div>
     <div class="row">${col(from, "Sent it for", "Nothing back")}${col(to, "Acquired", "")}<span class="badge" aria-hidden="true">${ARROW}</span></div>
     ${n > 2 ? `<div class="sub c" style="margin-top:-8px">${n}-team trade: showing the two teams on this asset’s path</div>` : ""}`;
 }
@@ -187,7 +211,7 @@ const nowPill = c => pill(c.holder ? "Now: " + c.holder : "Not on a roster", "no
 function viewPlayer(pid) {
   const p = D.players[pid] || {name: pid}, c = chain(null, pid);
   $("#app").innerHTML = `<a href="#">← Search</a><h2>${esc(p.name)}</h2>
-    <div class="sub">${esc([p.pos, p.team].filter(Boolean).join(" · "))}${p.pos || p.team ? " · " : ""}${c.trades} trade${c.trades === 1 ? "" : "s"} in this league</div>
+    <div class="sub">${esc([p.pos, p.team].filter(Boolean).join(" · "))}${p.pos || p.team ? " · " : ""}${c.trades} trade${c.trades === 1 ? "" : "s"} in this league${HAS ? " · " + pts1(ptsAll(pid, "0")) + " pts scored" : ""}</div>
     <div class="spine">${c.html}${nowPill(c)}</div>`;
 }
 
@@ -196,6 +220,131 @@ function viewPick(key) {
   $("#app").innerHTML = `<a href="#">← Search</a><h2>${esc(s + " " + ord(+r) + "-round pick")}</h2>
     <div class="sub">Originally ${esc(team(s, o))} · ${c.trades} trade${c.trades === 1 ? "" : "s"}${d ? " · became " + esc(pname(d.player_id)) : ""}</div>
     <div class="spine">${c.html}${nowPill(c)}</div>`;
+}
+
+/* ---------- points (weekly points per player, while on a roster in this league) ---------- */
+let P = {}, HAS = false;
+function buildPoints() {
+  for (const [k, m] of Object.entries(D.points || {})) {
+    const [s, w, r] = k.split("-");
+    for (const [pid, v] of Object.entries(m)) (P[pid] = P[pid] || []).push([s, +w, +r, v]);
+  }
+  HAS = Object.keys(D.points || {}).length > 0;
+}
+const ownerOf = (s, rid) => D.teams[s]?.[rid]?.owner_id ?? "r" + rid;
+const pts1 = v => v.toFixed(1);
+const ptsSince = (pid, owner, season, week) => (P[pid] || []).reduce((a, [s, w, r, v]) =>
+  a + ((s > season || (s === season && w >= week)) && ownerOf(s, r) === owner ? v : 0), 0);
+const ptsAll = (pid, season) => (P[pid] || []).reduce((a, [s, , , v]) => a + (s >= season ? v : 0), 0);
+
+/* ---------- trade scorecard ---------- */
+function viewTrade(id) {
+  const t = D.transactions.find(x => x.id === id);
+  if (!t) return viewSearch();
+  const rc = receipts(t);
+  const ids = new Set([...Object.keys(rc), ...Object.values(t.drops).map(String), ...t.picks.map(p => String(p.from))]);
+  const sides = [...ids].map(rid => {
+    const owner = ownerOf(t.season, rid);
+    let total = 0;
+    const items = (rc[rid] || []).map(a => {
+      let v = null;
+      if (a.kind === "player") v = ptsSince(a.id, owner, t.season, t.week);
+      else if (a.kind === "pick") {
+        const d = D.draft_results[a.key];
+        if (d && ownerOf(d.league_season, d.by) === owner) v = ptsSince(d.player_id, owner, d.season, 0);
+      }
+      if (v != null) total += v;
+      return assetHtml(a, false, v != null && HAS ? pts1(v) : "");
+    });
+    return {rid, total, items, name: team(t.season, rid)};
+  });
+  const [a, b] = sides, two = sides.length === 2;
+  const lead = two && a.total !== b.total ? (a.total > b.total ? a : b) : null;
+  const sum = a.total + (b ? b.total : 0);
+  const top = two
+    ? `<div style="display:flex;justify-content:space-between;align-items:flex-end;gap:8px"><div><div class="lbl">${esc(a.name)}</div><div class="tot">${pts1(a.total)}</div></div><div style="text-align:right"><div class="lbl">${esc(b.name)}</div><div class="tot">${pts1(b.total)}</div></div></div>
+       <div class="bar"><i style="width:${sum ? (100 * a.total / sum).toFixed(1) : 50}%"></i></div>
+       <div style="font-size:.85rem">${lead ? `<b>${esc(lead.name)}</b> lead by ${pts1(Math.abs(a.total - b.total))} pts` : "No points scored yet"}</div>`
+    : sides.map(x => `<div style="display:flex;justify-content:space-between;padding:4px 0"><b>${esc(x.name)}</b><span>${pts1(x.total)} pts</span></div>`).join("");
+  const cols = sides.map(x => `<div class="side"><div class="th">${teamAv(t.season, x.rid)}<div><div class="team">${esc(x.name)}</div><div class="lbl">Got</div></div></div>${x.items.join("") || `<div class="none">Nothing back</div>`}</div>`).join("");
+  $("#app").innerHTML = `<a href="#" onclick="history.back();return false">← Back</a><h2>Trade scorecard</h2>
+    <div class="sub">${esc(fmt(t.created))} · points scored since the trade</div>
+    <div class="card2">${HAS ? top : `<span class="hint">Re-run crawl.py to load weekly points.</span>`}</div>
+    <div class="grid2">${cols}</div>
+    <p class="hint" style="margin-top:12px">Points are what each player scored for the team that got him, from the trade week on. Picks count once they’ve been used. Bench points are included.</p>`;
+}
+
+/* ---------- future pick board ---------- */
+function abbrs(season) {
+  const out = {}, used = new Set();
+  for (const [rid, t] of Object.entries(D.teams[season] || {})) {
+    const w = t.name.replace(/[^\p{L}\p{N} ]/gu, "").split(/\s+/).filter(Boolean);
+    let a = w.slice(0, 2).map(x => x[0]).join("").toUpperCase() || "T" + rid, i = 1;
+    while (used.has(a) && i < 8) a = (w[0] || "T").slice(0, ++i).toUpperCase();
+    if (used.has(a)) a += rid;
+    used.add(a); out[rid] = a;
+  }
+  return out;
+}
+function viewPicks(season) {
+  const cur = D.current;
+  if (!cur) { $("#app").innerHTML = `<p class="hint">Re-run crawl.py to load current pick ownership.</p>`; return; }
+  const future = [1, 2, 3].map(n => String(+cur.season + n));
+  const past = [...new Set(Object.values(D.draft_results).map(d => d.season))].filter(x => !future.includes(x)).sort().reverse();
+  const seasons = [...future, ...past];
+  if (!seasons.includes(season)) season = future[0];
+  const isFuture = future.includes(season);
+  const done = Object.entries(D.draft_results).filter(([, d]) => d.season === season);
+  const ls = isFuture ? cur.season : (done[0]?.[1].league_season || cur.season);
+  const ab = abbrs(ls), R = Math.max(cur.rounds || 4, ...done.map(([, d]) => d.round));
+  let rids = Object.keys(D.teams[ls] || {});
+  const held = {};
+  rids.forEach(r => held[r] = Array.from({length: R}, () => []));
+  if (isFuture) {
+    for (let r = 1; r <= R; r++) for (const o of rids)
+      held[String(D.pick_owners?.[`${season}-${r}-${o}`] ?? o)]?.[r - 1].push({o, key: `${season}-${r}-${o}`});
+  } else for (const [key, d] of done) held[String(d.by)]?.[d.round - 1].push({o: key.split("-")[2], key});
+  // Points a used pick produced: what its player scored for the team that held the pick. Future picks have none.
+  const val = key => {
+    const d = D.draft_results[key];
+    return d && HAS ? ptsSince(d.player_id, ownerOf(d.league_season, d.by), d.season, 0) : null;
+  };
+  const total = rid => { const v = held[rid].flat().map(it => val(it.key)).filter(x => x != null); return v.length ? v.reduce((a, b) => a + b, 0) : null; };
+  if (!isFuture) rids = rids.sort((a, b) => (total(b) ?? -1) - (total(a) ?? -1));
+  const pp = v => `<small class="pp">${v == null ? "-" : pts1(v)}</small>`;
+  const cell = (rid, list) => !list.length ? `<span class="mut">—</span>`
+    : list.map(it => `<a class="pi" href="#pick/${it.key}"><span class="${it.o === rid ? "mut" : "chipt"}">${it.o === rid ? "·" : esc(ab[it.o])}</span>${pp(val(it.key))}</a>`).join("");
+  const head = `<div class="pb h" style="--r:${R + 1}"><span></span>${Array.from({length: R}, (_, i) => `<span>Round ${i + 1}</span>`).join("")}<span>Total</span></div>`;
+  const body = rids.map(rid => `<div class="pb" style="--r:${R + 1}"><span class="tn">${teamAv(ls, rid)}<span>${esc(team(ls, rid))}</span></span>${held[rid].map(l => `<span>${cell(rid, l)}</span>`).join("")}<span><b>${total(rid) == null ? "-" : pts1(total(rid))}</b></span></div>`).join("");
+  $("#app").innerHTML = `<h2>Pick board</h2><div class="sub">${isFuture ? "Who holds every future pick" : "How each team’s " + season + " picks turned out"}. Tap one for its history.</div>
+    <div class="chips">${seasons.map(x => `<a class="chip${x === season ? " on" : ""}" href="#picks/${x}">${x}</a>`).join("")}</div>
+    <div class="card2 pbw">${head}${body}</div>
+    <p class="hint"><span class="mut">·</span> own pick &nbsp; <span class="chipt">XX</span> held from that team &nbsp; — traded away &nbsp; <b>-</b> not used yet<br>Points are what the drafted player scored for the team that held the pick.</p>`;
+}
+
+/* ---------- draft board ---------- */
+function viewDraft(season) {
+  const seasons = [...new Set(Object.values(D.draft_results).map(d => d.season))].sort().reverse();
+  if (!seasons.length) { $("#app").innerHTML = `<p class="hint">No drafts found.</p>`; return; }
+  if (!seasons.includes(season)) season = seasons[0];
+  const picks = Object.entries(D.draft_results).filter(([, d]) => d.season === season)
+    .sort((x, y) => x[1].round - y[1].round || x[1].pick_no - y[1].pick_no);
+  const n = Object.keys(D.teams[picks[0][1].league_season] || {}).length || 12;
+  let html = "", round = 0;
+  for (const [key, d] of picks) {
+    if (d.round !== round) { if (round) html += "</div>"; round = d.round; html += `<div class="card2"><div class="ttl">Round ${round}</div>`; }
+    const slot = d.pick_no - (d.round - 1) * n, orig = key.split("-")[2], p = D.players[d.player_id] || {};
+    const via = String(orig) !== String(d.by) ? `via ${team(d.league_season, orig)}` : "";
+    const sub = [p.pos, p.team].filter(Boolean).join(" · ") + (HAS ? ` · ${pts1(ptsAll(d.player_id, d.season))} pts` : "");
+    html += `<a class="dr" href="#player/${esc(d.player_id)}"><span class="no">${d.round}.${String(slot).padStart(2, "0")}</span>${headshot(d.player_id)}<span class="nm">${esc(pname(d.player_id))}<small>${esc(sub)}</small></span><span class="rt"><b>${esc(team(d.league_season, d.by))}</b>${via ? `<small>${esc(via)}</small>` : ""}</span></a>`;
+  }
+  $("#app").innerHTML = `<h2>Draft board</h2><div class="sub">Every pick, who made it, and total points scored since${HAS ? "" : " (re-run crawl.py to load points)"}</div>
+    <div class="chips">${seasons.map(x => `<a class="chip${x === season ? " on" : ""}" href="#draft/${x}">${x}</a>`).join("")}</div>${html}</div>`;
+}
+
+function renderNav(type) {
+  const items = [["", "Search", ["", "player", "pick", "trade"]], ["picks", "Pick board", ["picks"]], ["draft", "Drafts", ["draft"]]];
+  $("#nav").innerHTML = items.map(([h, l, ts]) => `<a class="chip${ts.includes(type) ? " on" : ""}" href="#${h}">${l}</a>`).join("");
 }
 
 function viewSearch(q = "") {
@@ -215,9 +364,14 @@ function renderResults(q) {
 
 function route() {
   const [type, ...rest] = location.hash.slice(1).split("/"), id = rest.join("/");
-  if (type === "player" && id) { viewPlayer(id); window.scrollTo(0, 0); }
-  else if (type === "pick" && id) { viewPick(id); window.scrollTo(0, 0); }
+  renderNav(type);
+  if (type === "player" && id) viewPlayer(id);
+  else if (type === "pick" && id) viewPick(id);
+  else if (type === "trade" && id) viewTrade(id);
+  else if (type === "picks") viewPicks(id);
+  else if (type === "draft") viewDraft(id);
   else viewSearch();
+  window.scrollTo(0, 0);
 }
 
 /* ---------- boot ---------- */
@@ -245,7 +399,7 @@ if ("serviceWorker" in navigator) addEventListener("load", () => navigator.servi
 fetch("history.json")
   .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
   .then(data => {
-    D = data; buildItems();
+    D = data; buildPoints(); buildItems();
     $("#foot").textContent = "Data updated " + fmt(Date.parse(D.generated));
     addEventListener("hashchange", route); route();
   })
