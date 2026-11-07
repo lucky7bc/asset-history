@@ -311,7 +311,7 @@ function viewDraft(season) {
     const viaName = String(orig) !== String(d.by) ? teamUsername(d.league_season, orig) : "";
     const totPts = HAS ? ptsAll(d.player_id, d.season) : null;
     const sub = [p.pos, p.team].filter(Boolean).join(" · ");
-    html += `<div class="dr"><span class="no">${d.round}.${String(slot).padStart(2, "0")}</span>${headshot(d.player_id)}<a class="pln" href="#player/${esc(d.player_id)}"><span class="nm">${esc(pname(d.player_id))}<small>${esc(sub)}</small></span></a><span class="rt"><b class="ow" title="${esc(uname)}" onclick="event.stopPropagation();this.classList.toggle('exp')">${esc(uname)}</b>${totPts != null ? `<span class="ppts">${pts1(totPts)}</span>` : ""}${viaName ? `<small style="color:var(--ac);display:block">via ${esc(viaName)}</small>` : ""}</span></div>`;
+    html += `<div class="dr"><span class="no">${d.round}.${String(slot).padStart(2, "0")}</span>${headshot(d.player_id)}<a class="pln" href="#player/${esc(d.player_id)}"><span class="nm">${esc(pname(d.player_id))}<small>${esc(sub)}</small></span>${totPts != null ? `<span class="ppts">${pts1(totPts)} pts</span>` : ""}</a><span class="rt"><b class="ow" title="${esc(uname)}" onclick="event.stopPropagation();this.classList.toggle('exp')">${esc(uname)}</b>${viaName ? `<small style="color:var(--ac);display:block">via ${esc(viaName)}</small>` : ""}</span></div>`;
   }
   if (round) html += "</div>";
   $("#app").innerHTML = `<h2>Draft board</h2><div class="sub">Every pick, who made it, and total points scored since${HAS ? "" : " (re-run crawl.py to load points)"}</div>
@@ -373,7 +373,7 @@ function viewH2H(path = "") {
 function leagueRecords() {
   let hi = null, lo = null, cl = null, bl = null;
   const str = {};
-  const sorted = [...MATCHUPS].filter(x => x.p.length === 2).sort((a, b) => a.s.localeCompare(b.s) || a.w - b.w);
+  const sorted = [...MATCHUPS].filter(x => x.p.length === 2 && x.p[0].pts > 0 && x.p[1].pts > 0).sort((a, b) => a.s.localeCompare(b.s) || a.w - b.w);
   for (const {s, w, p} of sorted) {
     const [a, b] = p, mg = Math.abs(a.pts - b.pts);
     for (const x of p) {
@@ -384,18 +384,31 @@ function leagueRecords() {
     if (!bl || mg > Math.abs(bl.p[0].pts - bl.p[1].pts)) bl = {s, w, p};
     for (const x of p) {
       const oid = ownerOf(s, x.rid), opp = p.find(y => y !== x);
-      if (!str[oid]) str[oid] = {w: 0, l: 0, mw: 0, ml: 0};
-      const won = x.pts > opp.pts;
-      if (won) { str[oid].w++; str[oid].l = 0; str[oid].mw = Math.max(str[oid].mw, str[oid].w); }
-      else { str[oid].l++; str[oid].w = 0; str[oid].ml = Math.max(str[oid].ml, str[oid].l); }
+      if (!str[oid]) str[oid] = {w:0, l:0, mw:0, ml:0, wSt:null, lSt:null, mwSt:null, mwEn:null, mlSt:null, mlEn:null};
+      const st = str[oid], won = x.pts > opp.pts;
+      if (won) {
+        st.w++; st.l = 0;
+        if (st.w === 1) st.wSt = {s, w};
+        if (st.w > st.mw) { st.mw = st.w; st.mwSt = st.wSt; st.mwEn = {s, w}; }
+        st.lSt = null;
+      } else {
+        st.l++; st.w = 0;
+        if (st.l === 1) st.lSt = {s, w};
+        if (st.l > st.ml) { st.ml = st.l; st.mlSt = st.lSt; st.mlEn = {s, w}; }
+        st.wSt = null;
+      }
     }
   }
-  const sa = Object.entries(str).map(([oid, v]) => ({oid, name: username(oid), ...v}));
+  const sa = Object.entries(str).map(([oid, v]) => ({oid, name: username(oid), ...v,
+    winActive: v.w > 0 && v.w === v.mw,
+    lossActive: v.l > 0 && v.l === v.ml,
+  }));
   return {hi, lo, cl, bl, win: [...sa].sort((a, b) => b.mw - a.mw)[0], loss: [...sa].sort((a, b) => b.ml - a.ml)[0]};
 }
 function viewRecords() {
   if (!MATCHUPS.length) { $("#app").innerHTML = `<h2>Records</h2><p class="hint">Re-run crawl.py to load matchup data.</p>`; return; }
   const r = leagueRecords();
+  const rng = (st, en, active) => !st ? "" : ` · ${st.s} Wk ${st.w}${active ? " – present" : (en && (en.s !== st.s || en.w !== st.w)) ? ` – ${en.s} Wk ${en.w}` : ""}`;
   const rec = (val, lbl, sub) => `<div class="rr"><b>${esc(String(val))}</b><span class="ri"><span style="color:var(--fg);font-weight:600">${esc(lbl)}</span><br>${esc(sub)}</span></div>`;
   const game = (g, lbl) => { if (!g) return "";
     const [a, b] = g.p, w = a.pts >= b.pts ? a : b, l = a.pts < b.pts ? a : b;
@@ -406,8 +419,8 @@ function viewRecords() {
       ${r.lo ? rec(pts1(r.lo.pts), "Lowest score ever", `${username(ownerOf(r.lo.s, r.lo.rid))} · ${r.lo.s} Wk ${r.lo.w}`) : ""}
       ${game(r.bl, "Biggest blowout")}
       ${game(r.cl, "Closest game")}
-      ${r.win ? rec(r.win.mw + " W", "Longest win streak", r.win.name) : ""}
-      ${r.loss ? rec(r.loss.ml + " L", "Longest loss streak", r.loss.name) : ""}
+      ${r.win ? rec(r.win.mw + " W", "Longest win streak" + (r.win.winActive ? " (active)" : ""), r.win.name + rng(r.win.mwSt, r.win.mwEn, r.win.winActive)) : ""}
+      ${r.loss ? rec(r.loss.ml + " L", "Longest loss streak" + (r.loss.lossActive ? " (active)" : ""), r.loss.name + rng(r.loss.mlSt, r.loss.mlEn, r.loss.lossActive)) : ""}
     </div>`;
 }
 /* ---------- luck index ---------- */
