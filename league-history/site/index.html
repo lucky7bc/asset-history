@@ -79,6 +79,16 @@ input:focus-visible,a:focus-visible{outline:2px solid var(--ac);outline-offset:2
 .bar{display:flex;height:10px;border-radius:5px;overflow:hidden;margin:10px 0;background:var(--tag)}
 .bar i{background:var(--ac)}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.ppts{background:rgba(16,185,129,.15);color:#34d399;padding:2px 8px;border-radius:12px;font-weight:600;font-size:.75rem;white-space:nowrap;display:inline-block;margin-top:3px}
+.ow{max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer;display:inline-block;vertical-align:bottom}
+.ow.exp{max-width:none;white-space:normal;word-break:break-word}
+.pln{color:var(--fg);font-weight:600;text-decoration:none;flex:1;min-width:0}
+.rr{padding:10px 0;border-top:1px solid var(--bd);font-size:.82rem;display:flex;gap:10px;align-items:center}
+.rr b{min-width:52px;font-size:1rem}.rr .ri{flex:1;min-width:0;color:var(--mut)}
+.lrow{display:flex;gap:8px;align-items:center;padding:8px 0;border-top:1px solid var(--bd);font-size:.82rem}
+.lp{font-weight:700;font-size:.88rem;min-width:44px;text-align:right}
+.lpos{color:#34d399}.lneg{color:#f87171}
+.mrow{display:flex;justify-content:space-between;padding:7px 0;border-top:1px solid var(--bd);font-size:.82rem}
 .pi{display:block;line-height:1.15;margin:3px 0}
 .pp{display:block;font-size:.65rem;color:var(--mut)}
 footer{margin-top:28px;font-size:.78rem;color:var(--mut)}
@@ -98,7 +108,7 @@ const ord = n => ({1:"1st",2:"2nd",3:"3rd"}[n] || n + "th");
 const fmt = ms => ms ? new Date(ms).toLocaleDateString(undefined, {year:"numeric", month:"short", day:"numeric"}) : "";
 const ARROW = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg>`;
 const TICKET = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 7h16v3a2 2 0 0 0 0 4v3H4v-3a2 2 0 0 0 0-4z"/></svg>`;
-let D, ITEMS = [];
+let D, ITEMS = [], MATCHUPS = [];
 
 /* ---------- lookups ---------- */
 function teamObj(season, rid) {
@@ -110,7 +120,7 @@ function teamObj(season, rid) {
 const team = (s, rid) => teamObj(s, rid).name;
 const pname = pid => D.players[pid]?.name || pid;
 const pickKey = p => `${p.season}-${p.round}-${p.roster_id}`;
-const pickLabel = k => { const [s, r, o] = k.split("-"); return `${s} ${ord(+r)}-round pick (orig. ${team(s, o)})`; };
+const pickLabel = k => { const [s, r, o] = k.split("-"); return `${s} ${ord(+r)}-round pick (orig. ${teamUsername(s, o)})`; };
 
 /* ---------- faces (image over initials; a failed image just disappears) ---------- */
 const ini = n => String(n).split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]).join("").toUpperCase();
@@ -118,6 +128,13 @@ const av = (src, name, sq) => `<span class="av${sq ? " sq" : ""}">${esc(ini(name
 const headshot = pid => av(`https://sleepercdn.com/content/nfl/players/thumb/${pid}.jpg`, pname(pid));
 const teamAv = (s, rid) => { const t = teamObj(s, rid); return av(t.avatar ? `https://sleepercdn.com/avatars/thumbs/${t.avatar}` : null, t.name); };
 
+const username = oid => D.users?.[oid]?.name || oid;
+const teamUsername = (ss, rid) => { const t = teamObj(ss, rid); return t?.owner_id ? username(t.owner_id) : t?.name || "Team " + rid; };
+const uav = oid => av(D.users?.[oid]?.avatar ? `https://sleepercdn.com/avatars/thumbs/${D.users[oid].avatar}` : null, username(oid));
+function getOwners() {
+  const seen = new Set();
+  return Object.values(D.teams).flatMap(ss => Object.values(ss)).map(t => t.owner_id).filter(x => x && !seen.has(x) && seen.add(x));
+}
 function assetHtml(a, hit, val = "") {
   let icon, name, sub = "", href = "", extra = "";
   if (a.kind === "player") {
@@ -232,6 +249,7 @@ function buildPoints() {
   HAS = Object.keys(D.points || {}).length > 0;
 }
 const ownerOf = (s, rid) => D.teams[s]?.[rid]?.owner_id ?? "r" + rid;
+function buildMatchups() { MATCHUPS = D.matchups || []; }
 const pts1 = v => v.toFixed(1);
 const ptsSince = (pid, owner, season, week) => (P[pid] || []).reduce((a, [s, w, r, v]) =>
   a + ((s > season || (s === season && w >= week)) && ownerOf(s, r) === owner ? v : 0), 0);
@@ -275,52 +293,6 @@ function viewTrade(id) {
 }
 
 /* ---------- future pick board ---------- */
-function abbrs(season) {
-  const out = {}, used = new Set();
-  for (const [rid, t] of Object.entries(D.teams[season] || {})) {
-    const w = t.name.replace(/[^\p{L}\p{N} ]/gu, "").split(/\s+/).filter(Boolean);
-    let a = w.slice(0, 2).map(x => x[0]).join("").toUpperCase() || "T" + rid, i = 1;
-    while (used.has(a) && i < 8) a = (w[0] || "T").slice(0, ++i).toUpperCase();
-    if (used.has(a)) a += rid;
-    used.add(a); out[rid] = a;
-  }
-  return out;
-}
-function viewPicks(season) {
-  const cur = D.current;
-  if (!cur) { $("#app").innerHTML = `<p class="hint">Re-run crawl.py to load current pick ownership.</p>`; return; }
-  const future = [1, 2, 3].map(n => String(+cur.season + n));
-  const past = [...new Set(Object.values(D.draft_results).map(d => d.season))].filter(x => !future.includes(x)).sort().reverse();
-  const seasons = [...future, ...past];
-  if (!seasons.includes(season)) season = future[0];
-  const isFuture = future.includes(season);
-  const done = Object.entries(D.draft_results).filter(([, d]) => d.season === season);
-  const ls = isFuture ? cur.season : (done[0]?.[1].league_season || cur.season);
-  const ab = abbrs(ls), R = Math.max(cur.rounds || 4, ...done.map(([, d]) => d.round));
-  let rids = Object.keys(D.teams[ls] || {});
-  const held = {};
-  rids.forEach(r => held[r] = Array.from({length: R}, () => []));
-  if (isFuture) {
-    for (let r = 1; r <= R; r++) for (const o of rids)
-      held[String(D.pick_owners?.[`${season}-${r}-${o}`] ?? o)]?.[r - 1].push({o, key: `${season}-${r}-${o}`});
-  } else for (const [key, d] of done) held[String(d.by)]?.[d.round - 1].push({o: key.split("-")[2], key});
-  // Points a used pick produced: what its player scored for the team that held the pick. Future picks have none.
-  const val = key => {
-    const d = D.draft_results[key];
-    return d && HAS ? ptsSince(d.player_id, ownerOf(d.league_season, d.by), d.season, 0) : null;
-  };
-  const total = rid => { const v = held[rid].flat().map(it => val(it.key)).filter(x => x != null); return v.length ? v.reduce((a, b) => a + b, 0) : null; };
-  if (!isFuture) rids = rids.sort((a, b) => (total(b) ?? -1) - (total(a) ?? -1));
-  const pp = v => `<small class="pp">${v == null ? "-" : pts1(v)}</small>`;
-  const cell = (rid, list) => !list.length ? `<span class="mut">—</span>`
-    : list.map(it => `<a class="pi" href="#pick/${it.key}"><span class="${it.o === rid ? "mut" : "chipt"}">${it.o === rid ? "·" : esc(ab[it.o])}</span>${pp(val(it.key))}</a>`).join("");
-  const head = `<div class="pb h" style="--r:${R + 1}"><span></span>${Array.from({length: R}, (_, i) => `<span>Round ${i + 1}</span>`).join("")}<span>Total</span></div>`;
-  const body = rids.map(rid => `<div class="pb" style="--r:${R + 1}"><span class="tn">${teamAv(ls, rid)}<span>${esc(team(ls, rid))}</span></span>${held[rid].map(l => `<span>${cell(rid, l)}</span>`).join("")}<span><b>${total(rid) == null ? "-" : pts1(total(rid))}</b></span></div>`).join("");
-  $("#app").innerHTML = `<h2>Pick board</h2><div class="sub">${isFuture ? "Who holds every future pick" : "How each team’s " + season + " picks turned out"}. Tap one for its history.</div>
-    <div class="chips">${seasons.map(x => `<a class="chip${x === season ? " on" : ""}" href="#picks/${x}">${x}</a>`).join("")}</div>
-    <div class="card2 pbw">${head}${body}</div>
-    <p class="hint"><span class="mut">·</span> own pick &nbsp; <span class="chipt">XX</span> held from that team &nbsp; — traded away &nbsp; <b>-</b> not used yet<br>Points are what the drafted player scored for the team that held the pick.</p>`;
-}
 
 /* ---------- draft board ---------- */
 function viewDraft(season) {
@@ -329,21 +301,158 @@ function viewDraft(season) {
   if (!seasons.includes(season)) season = seasons[0];
   const picks = Object.entries(D.draft_results).filter(([, d]) => d.season === season)
     .sort((x, y) => x[1].round - y[1].round || x[1].pick_no - y[1].pick_no);
-  const n = Object.keys(D.teams[picks[0][1].league_season] || {}).length || 12;
+  const n = Object.keys(D.teams[picks[0]?.[1]?.league_season] || {}).length || 12;
   let html = "", round = 0;
   for (const [key, d] of picks) {
     if (d.round !== round) { if (round) html += "</div>"; round = d.round; html += `<div class="card2"><div class="ttl">Round ${round}</div>`; }
-    const slot = d.pick_no - (d.round - 1) * n, orig = key.split("-")[2], p = D.players[d.player_id] || {};
-    const via = String(orig) !== String(d.by) ? `via ${team(d.league_season, orig)}` : "";
-    const sub = [p.pos, p.team].filter(Boolean).join(" · ") + (HAS ? ` · ${pts1(ptsAll(d.player_id, d.season))} pts` : "");
-    html += `<a class="dr" href="#player/${esc(d.player_id)}"><span class="no">${d.round}.${String(slot).padStart(2, "0")}</span>${headshot(d.player_id)}<span class="nm">${esc(pname(d.player_id))}<small>${esc(sub)}</small></span><span class="rt"><b>${esc(team(d.league_season, d.by))}</b>${via ? `<small>${esc(via)}</small>` : ""}</span></a>`;
+    const slot = d.pick_no - (d.round - 1) * n, orig = key.split("-")[2];
+    const p = D.players[d.player_id] || {};
+    const uname = teamUsername(d.league_season, d.by);
+    const viaName = String(orig) !== String(d.by) ? teamUsername(d.league_season, orig) : "";
+    const totPts = HAS ? ptsAll(d.player_id, d.season) : null;
+    const sub = [p.pos, p.team].filter(Boolean).join(" · ");
+    html += `<div class="dr"><span class="no">${d.round}.${String(slot).padStart(2, "0")}</span>${headshot(d.player_id)}<a class="pln" href="#player/${esc(d.player_id)}"><span class="nm">${esc(pname(d.player_id))}<small>${esc(sub)}</small></span></a><span class="rt"><b class="ow" title="${esc(uname)}" onclick="event.stopPropagation();this.classList.toggle('exp')">${esc(uname)}</b>${totPts != null ? `<span class="ppts">${pts1(totPts)}</span>` : ""}${viaName ? `<small style="color:var(--ac);display:block">via ${esc(viaName)}</small>` : ""}</span></div>`;
   }
+  if (round) html += "</div>";
   $("#app").innerHTML = `<h2>Draft board</h2><div class="sub">Every pick, who made it, and total points scored since${HAS ? "" : " (re-run crawl.py to load points)"}</div>
-    <div class="chips">${seasons.map(x => `<a class="chip${x === season ? " on" : ""}" href="#draft/${x}">${x}</a>`).join("")}</div>${html}</div>`;
+    <div class="chips">${seasons.map(x => `<a class="chip${x === season ? " on" : ""}" href="#draft/${x}">${x}</a>`).join("")}</div>${html}`;
+}
+
+
+/* ---------- h2h ---------- */
+function computeH2H(oa, ob) {
+  let wa = 0, wb = 0, tie = 0, pfa = 0, pfb = 0;
+  const games = [];
+  for (const {s, w, p} of MATCHUPS) {
+    if (p.length !== 2) continue;
+    const [x, y] = p, xa = ownerOf(s, x.rid), xb = ownerOf(s, y.rid);
+    let a, b;
+    if (xa === oa && xb === ob) { a = x; b = y; }
+    else if (xa === ob && xb === oa) { a = y; b = x; }
+    else continue;
+    pfa += a.pts; pfb += b.pts;
+    if (a.pts > b.pts) wa++; else if (b.pts > a.pts) wb++; else tie++;
+    games.push({s, w, apts: a.pts, bpts: b.pts});
+  }
+  return {wa, wb, tie, pfa, pfb, games: games.sort((x, y) => y.s.localeCompare(x.s) || y.w - x.w)};
+}
+function viewH2H(path = "") {
+  const parts = (path || "").split("/").filter(Boolean), owners = getOwners();
+  if (parts.length >= 2) {
+    const [oa, ob] = parts, r = computeH2H(oa, ob), tot = r.wa + r.wb + r.tie;
+    const bar = tot ? `<div class="bar" style="margin:10px 0"><i style="width:${(100*r.wa/tot).toFixed(1)}%"></i></div>` : "";
+    const last5 = r.games.slice(0, 5).map(g =>
+      `<div class="mrow"><span class="mut">${g.s} Wk ${g.w}</span><span>${g.apts > g.bpts ? "✓" : "✗"} <b>${pts1(g.apts)}</b> – ${pts1(g.bpts)}</span></div>`).join("");
+    $("#app").innerHTML = `<a href="#h2h">← H2H</a><h2>${esc(username(oa))} vs ${esc(username(ob))}</h2>
+      <div class="sub">All-time head-to-head record</div>
+      <div class="card2">
+        <div style="text-align:center;margin-bottom:8px">
+          <div style="display:flex;justify-content:space-around;align-items:center;gap:8px">
+            <div>${uav(oa)}<div style="font-size:.8rem;font-weight:600;margin-top:4px">${esc(username(oa))}</div></div>
+            <div style="font-size:1.6rem;font-weight:700;letter-spacing:.04em">${r.wa} – ${r.wb}${r.tie ? ` (${r.tie}T)` : ""}</div>
+            <div>${uav(ob)}<div style="font-size:.8rem;font-weight:600;margin-top:4px">${esc(username(ob))}</div></div>
+          </div>
+          <div style="color:var(--mut);font-size:.78rem;margin-top:6px">${tot} games &nbsp;·&nbsp; ${pts1(r.pfa)} – ${pts1(r.pfb)} pts</div>
+        </div>${bar}
+      </div>
+      ${last5 ? `<div class="card2"><div class="ttl">Last 5 matchups</div>${last5}</div>` : ""}
+      ${!MATCHUPS.length ? `<p class="hint">Re-run crawl.py to load matchup data.</p>` : ""}`;
+  } else if (parts.length === 1) {
+    const oa = parts[0];
+    $("#app").innerHTML = `<a href="#h2h">← H2H</a><div style="display:flex;gap:10px;align-items:center;margin:10px 0 14px">${uav(oa)}<h2 style="margin:0">${esc(username(oa))}</h2></div>
+      <div class="sub">Pick an opponent</div>
+      <div class="card2">${owners.filter(o => o !== oa).map(o =>
+        `<a class="chip" style="margin:4px 2px;display:inline-flex;gap:6px;align-items:center" href="#h2h/${oa}/${o}">${uav(o)} ${esc(username(o))}</a>`).join("")}</div>`;
+  } else {
+    $("#app").innerHTML = `<h2>Head to Head</h2><div class="sub">Pick a manager to start</div>
+      <div class="card2">${owners.map(o =>
+        `<a class="chip" style="margin:4px 2px;display:inline-flex;gap:6px;align-items:center" href="#h2h/${o}">${uav(o)} ${esc(username(o))}</a>`).join("")}</div>`;
+  }
+}
+/* ---------- records ---------- */
+function leagueRecords() {
+  let hi = null, lo = null, cl = null, bl = null;
+  const str = {};
+  const sorted = [...MATCHUPS].filter(x => x.p.length === 2).sort((a, b) => a.s.localeCompare(b.s) || a.w - b.w);
+  for (const {s, w, p} of sorted) {
+    const [a, b] = p, mg = Math.abs(a.pts - b.pts);
+    for (const x of p) {
+      if (!hi || x.pts > hi.pts) hi = {...x, s, w};
+      if (!lo || x.pts < lo.pts) lo = {...x, s, w};
+    }
+    if (!cl || mg < Math.abs(cl.p[0].pts - cl.p[1].pts)) cl = {s, w, p};
+    if (!bl || mg > Math.abs(bl.p[0].pts - bl.p[1].pts)) bl = {s, w, p};
+    for (const x of p) {
+      const oid = ownerOf(s, x.rid), opp = p.find(y => y !== x);
+      if (!str[oid]) str[oid] = {w: 0, l: 0, mw: 0, ml: 0};
+      const won = x.pts > opp.pts;
+      if (won) { str[oid].w++; str[oid].l = 0; str[oid].mw = Math.max(str[oid].mw, str[oid].w); }
+      else { str[oid].l++; str[oid].w = 0; str[oid].ml = Math.max(str[oid].ml, str[oid].l); }
+    }
+  }
+  const sa = Object.entries(str).map(([oid, v]) => ({oid, name: username(oid), ...v}));
+  return {hi, lo, cl, bl, win: [...sa].sort((a, b) => b.mw - a.mw)[0], loss: [...sa].sort((a, b) => b.ml - a.ml)[0]};
+}
+function viewRecords() {
+  if (!MATCHUPS.length) { $("#app").innerHTML = `<h2>Records</h2><p class="hint">Re-run crawl.py to load matchup data.</p>`; return; }
+  const r = leagueRecords();
+  const rec = (val, lbl, sub) => `<div class="rr"><b>${esc(String(val))}</b><span class="ri"><span style="color:var(--fg);font-weight:600">${esc(lbl)}</span><br>${esc(sub)}</span></div>`;
+  const game = (g, lbl) => { if (!g) return "";
+    const [a, b] = g.p, w = a.pts >= b.pts ? a : b, l = a.pts < b.pts ? a : b;
+    return rec(lbl, `${pts1(w.pts)} – ${pts1(l.pts)}`, `${username(ownerOf(g.s, w.rid))} beat ${username(ownerOf(g.s, l.rid))} · ${g.s} Wk ${g.w}`); };
+  $("#app").innerHTML = `<h2>League Records</h2><div class="sub">All-time milestones across every season</div>
+    <div class="card2">
+      ${r.hi ? rec(pts1(r.hi.pts), "Highest score ever", `${username(ownerOf(r.hi.s, r.hi.rid))} · ${r.hi.s} Wk ${r.hi.w}`) : ""}
+      ${r.lo ? rec(pts1(r.lo.pts), "Lowest score ever", `${username(ownerOf(r.lo.s, r.lo.rid))} · ${r.lo.s} Wk ${r.lo.w}`) : ""}
+      ${game(r.bl, "Biggest blowout")}
+      ${game(r.cl, "Closest game")}
+      ${r.win ? rec(r.win.mw + " W", "Longest win streak", r.win.name) : ""}
+      ${r.loss ? rec(r.loss.ml + " L", "Longest loss streak", r.loss.name) : ""}
+    </div>`;
+}
+/* ---------- luck index ---------- */
+function luckIndex() {
+  // Pool all teams' scores for the same week so expected wins spans the full field
+  const byWeek = {};
+  for (const {s, w, p} of MATCHUPS)
+    for (const x of p) (byWeek[`${s}-${w}`] = byWeek[`${s}-${w}`] || []).push({oid: ownerOf(s, x.rid), pts: x.pts});
+  const exp = {}, act = {}, gms = {};
+  for (const scores of Object.values(byWeek)) {
+    const n = scores.length; if (n < 2) continue;
+    for (const {oid, pts} of scores) {
+      const oth = scores.filter(x => x.oid !== oid);
+      exp[oid] = (exp[oid] || 0) + oth.reduce((a, x) => a + (x.pts < pts ? 1 : x.pts === pts ? 0.5 : 0), 0) / oth.length;
+      gms[oid] = (gms[oid] || 0) + 1;
+    }
+  }
+  for (const {s, p} of MATCHUPS) {
+    if (p.length !== 2) continue;
+    const [a, b] = p, oa = ownerOf(s, a.rid), ob = ownerOf(s, b.rid);
+    act[oa] = (act[oa] || 0) + (a.pts > b.pts ? 1 : a.pts === b.pts ? 0.5 : 0);
+    act[ob] = (act[ob] || 0) + (b.pts > a.pts ? 1 : a.pts === b.pts ? 0.5 : 0);
+  }
+  return Object.keys(exp).map(oid => ({oid, name: username(oid),
+    exp: exp[oid], act: act[oid] || 0, gms: gms[oid] || 0, luck: (act[oid] || 0) - exp[oid]
+  })).sort((a, b) => b.luck - a.luck);
+}
+function viewLuck() {
+  if (!MATCHUPS.length) { $("#app").innerHTML = `<h2>Luck Index</h2><p class="hint">Re-run crawl.py to load matchup data.</p>`; return; }
+  const rows = luckIndex();
+  const list = rows.map(r => {
+    const lk = r.luck, pos = lk >= 0;
+    return `<div class="lrow">${uav(r.oid)}<span style="flex:1;font-weight:600">${esc(r.name)}</span>
+      <span class="mut" style="font-size:.78rem;min-width:52px;text-align:right">${r.act}W-${r.gms - Math.round(r.act)}L</span>
+      <span class="lp ${pos ? "lpos" : "lneg"}">${pos ? "+" : ""}${pts1(lk)}</span></div>`;
+  }).join("");
+  $("#app").innerHTML = `<h2>Luck Index</h2>
+    <div class="sub">Actual wins minus expected wins (if you played everyone each week). Covers all regular-season weeks.</div>
+    <div class="card2">${list}</div>
+    <p class="hint">+ = luckier than record suggests &nbsp;·&nbsp; − = tougher schedule than average</p>`;
 }
 
 function renderNav(type) {
-  const items = [["", "Search", ["", "player", "pick", "trade"]], ["picks", "Pick board", ["picks"]], ["draft", "Drafts", ["draft"]]];
+  const items = [["", "Search", ["", "player", "pick", "trade"]], ["draft", "Drafts", ["draft"]],
+    ["h2h", "H2H", ["h2h"]], ["records", "Records", ["records"]], ["luck", "Luck", ["luck"]]];
   $("#nav").innerHTML = items.map(([h, l, ts]) => `<a class="chip${ts.includes(type) ? " on" : ""}" href="#${h}">${l}</a>`).join("");
 }
 
@@ -368,8 +477,10 @@ function route() {
   if (type === "player" && id) viewPlayer(id);
   else if (type === "pick" && id) viewPick(id);
   else if (type === "trade" && id) viewTrade(id);
-  else if (type === "picks") viewPicks(id);
   else if (type === "draft") viewDraft(id);
+  else if (type === "h2h") viewH2H(id);
+  else if (type === "records") viewRecords();
+  else if (type === "luck") viewLuck();
   else viewSearch();
   window.scrollTo(0, 0);
 }
@@ -399,7 +510,7 @@ if ("serviceWorker" in navigator) addEventListener("load", () => navigator.servi
 fetch("history.json")
   .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
   .then(data => {
-    D = data; buildPoints(); buildItems();
+    D = data; buildPoints(); buildMatchups(); buildItems();
     $("#foot").textContent = "Data updated " + fmt(Date.parse(D.generated));
     addEventListener("hashchange", route); route();
   })
