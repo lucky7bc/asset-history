@@ -27,7 +27,7 @@ input{width:100%;font:inherit;padding:12px 14px;border:1px solid var(--bd);borde
 input:focus-visible,a:focus-visible{outline:2px solid var(--ac);outline-offset:2px}
 .hint,.sub{color:var(--mut);font-size:.85rem;margin:2px 0 14px}
 .results{list-style:none;margin:12px 0 0;padding:0}
-.res{display:flex;gap:10px;align-items:center;min-height:48px;padding:8px 10px;margin-bottom:6px;background:var(--card);border:1px solid var(--bd);border-radius:10px;color:var(--fg);font-weight:500}
+.res{display:flex;gap:10px;align-items:center;min-height:48px;padding:8px 10px;margin-bottom:6px;background:var(--card);border:1px solid var(--bd);border-radius:10px;color:var(--fg);font-weight:500;overflow:hidden}
 .res small{display:block;color:var(--mut);font-weight:400;font-size:.78rem}
 .av{position:relative;overflow:hidden;width:28px;height:28px;border-radius:50%;flex:none;display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;background:var(--tag);color:var(--fg)}
 .av.sq{border-radius:7px}
@@ -66,7 +66,7 @@ input:focus-visible,a:focus-visible{outline:2px solid var(--ac);outline-offset:2
 .dr{display:flex;gap:8px;align-items:center;padding:9px 0;border-top:1px solid var(--bd);color:var(--fg);font-weight:500;font-size:.85rem}
 .dr .no{width:34px;font-size:.75rem;font-weight:700;color:var(--mut)}
 .dr .nm{flex:1;min-width:0}.dr small{display:block;font-size:.72rem;color:var(--mut);font-weight:400}
-.dr .rt{text-align:right;font-size:.75rem}.dr .rt small{color:var(--ac);font-weight:600}
+.dr .rt{text-align:right;font-size:.75rem;flex:none;max-width:40%}.dr .rt small{color:var(--ac);font-weight:600}
 .pbw{overflow-x:auto}
 .pb{display:grid;grid-template-columns:minmax(120px,1.6fr) repeat(var(--r),minmax(46px,1fr));align-items:center;text-align:center;border-top:1px solid var(--bd);padding:7px 0;font-size:.78rem}
 .pb.h{border:0;color:var(--mut);font-size:.7rem}
@@ -91,6 +91,48 @@ input:focus-visible,a:focus-visible{outline:2px solid var(--ac);outline-offset:2
 .mrow{display:flex;justify-content:space-between;padding:7px 0;border-top:1px solid var(--bd);font-size:.82rem}
 .pi{display:block;line-height:1.15;margin:3px 0}
 .pp{display:block;font-size:.65rem;color:var(--mut)}
+/* ─── Responsive ─────────────────────────────────────────── */
+#nav{scrollbar-width:none;-webkit-overflow-scrolling:touch}
+#nav::-webkit-scrollbar{display:none}
+.unm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+@media(max-width:360px){
+  main{padding:12px}
+  h2{font-size:1.3rem}
+  .chip{padding:5px 9px;font-size:.74rem}
+  .row{gap:8px;margin:6px 0 10px}
+  .side{padding:6px}
+  .asset{padding:5px;gap:5px;font-size:.78rem;min-height:40px}
+  .dr .no{width:26px}
+  .ow{max-width:76px}
+  .badge{width:22px;height:22px;margin:-11px}
+}
+@media(max-width:480px){
+  .row{gap:10px}
+  .side{padding:7px}
+  .ow{max-width:108px}
+  .pill{max-width:calc(100% - 20px);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .unm{max-width:72px}
+}
+@media(min-width:600px){
+  main{max-width:600px}
+}
+@media(min-width:768px){
+  main{max-width:740px;padding:24px 32px}
+  h1{font-size:1.6rem}
+  h2{font-size:1.75rem}
+  .row{gap:18px}
+  .side{padding:12px}
+  .asset{padding:9px;font-size:.9rem}
+  .ow{max-width:180px}
+  .dr{font-size:.9rem}
+  .chip{padding:8px 14px}
+  .card2{padding:16px}
+}
+@media(min-width:1024px){
+  main{max-width:900px;padding:32px 40px}
+  h1{font-size:1.8rem}
+  h2{font-size:1.9rem}
+}
 footer{margin-top:28px;font-size:.78rem;color:var(--mut)}
 </style>
 </head>
@@ -348,9 +390,9 @@ function viewH2H(path = "") {
       <div class="card2">
         <div style="text-align:center;margin-bottom:8px">
           <div style="display:flex;justify-content:space-around;align-items:center;gap:8px">
-            <div>${uav(oa)}<div style="font-size:.8rem;font-weight:600;margin-top:4px">${esc(username(oa))}</div></div>
+            <div>${uav(oa)}<div class="unm" style="font-size:.8rem;margin-top:4px">${esc(username(oa))}</div></div>
             <div style="font-size:1.6rem;font-weight:700;letter-spacing:.04em">${r.wa} – ${r.wb}${r.tie ? ` (${r.tie}T)` : ""}</div>
-            <div>${uav(ob)}<div style="font-size:.8rem;font-weight:600;margin-top:4px">${esc(username(ob))}</div></div>
+            <div>${uav(ob)}<div class="unm" style="font-size:.8rem;margin-top:4px">${esc(username(ob))}</div></div>
           </div>
           <div style="color:var(--mut);font-size:.78rem;margin-top:6px">${tot} games &nbsp;·&nbsp; ${pts1(r.pfa)} – ${pts1(r.pfb)} pts</div>
         </div>${bar}
@@ -453,7 +495,7 @@ function viewLuck() {
   const rows = luckIndex();
   const list = rows.map(r => {
     const lk = r.luck, pos = lk >= 0;
-    return `<div class="lrow">${uav(r.oid)}<span style="flex:1;font-weight:600">${esc(r.name)}</span>
+    return `<div class="lrow">${uav(r.oid)}<span style="flex:1;font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(r.name)}</span>
       <span class="mut" style="font-size:.78rem;min-width:52px;text-align:right">${r.act}W-${r.gms - Math.round(r.act)}L</span>
       <span class="lp ${pos ? "lpos" : "lneg"}">${pos ? "+" : ""}${pts1(lk)}</span></div>`;
   }).join("");
