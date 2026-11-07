@@ -47,6 +47,10 @@ def crawl_league(league_id, out):
             teams[str(r["roster_id"])] = {"name": name, "owner_id": r.get("owner_id"), "avatar": u.get("avatar")}
         out["teams"][season] = teams
 
+        for u in users.values():
+            uid = u.get("user_id")
+            if uid:
+                out["users"][uid] = {"name": u.get("display_name") or uid, "avatar": u.get("avatar")}
         # Newest league only: who owns every traded future pick right now
         if out["current"] is None:
             out["current"] = {"season": season, "league_id": league_id,
@@ -86,12 +90,19 @@ def crawl_league(league_id, out):
                     ],
                 })
 
-        # Weekly points per player, keyed "season-week-roster_id" (while on that roster)
+        # Weekly points per player + matchup pairings
         for week in range(1, 19):
+            by_mid = {}
             for m in get(f"/league/{league_id}/matchups/{week}") or []:
                 vals = {pid: round(v, 1) for pid, v in (m.get("players_points") or {}).items() if v}
                 if vals:
                     out["points"][f"{season}-{week}-{m['roster_id']}"] = vals
+                mid = m.get("matchup_id")
+                if mid:
+                    by_mid.setdefault(mid, []).append({"rid": str(m["roster_id"]), "pts": round(float(m.get("points") or 0), 2)})
+            for pairs in by_mid.values():
+                if len(pairs) == 2:
+                    out["matchups"].append({"s": season, "w": week, "p": pairs})
 
         # Drafts: link each pick slot back to its original owner
         for d in get(f"/league/{league_id}/drafts") or []:
@@ -141,7 +152,7 @@ def main():
 
     out = {"generated": datetime.now(timezone.utc).isoformat(), "teams": {},
            "transactions": [], "draft_results": {}, "players": {},
-           "points": {}, "pick_owners": {}, "current": None}
+           "points": {}, "pick_owners": {}, "current": None, "matchups": [], "users": {}}
     crawl_league(league_id, out)
     attach_players(out)
     out["transactions"].sort(key=lambda t: t["created"])
