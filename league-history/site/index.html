@@ -133,6 +133,19 @@ input:focus-visible,a:focus-visible{outline:2px solid var(--ac);outline-offset:2
   h1{font-size:1.8rem}
   h2{font-size:1.9rem}
 }
+/* ─── PWA install modal ───────────────────────────────────── */
+#pwa-modal:not([hidden]){position:fixed;inset:0;background:rgba(0,0,0,.72);display:flex;align-items:center;justify-content:center;z-index:9999;padding:20px;box-sizing:border-box}
+.pwa-card{background:var(--card);border:1px solid var(--bd);border-radius:20px;padding:24px 20px;max-width:340px;width:100%;text-align:center;box-shadow:0 8px 40px rgba(0,0,0,.4)}
+.pwa-ico{width:80px;height:80px;border-radius:18px;margin:0 auto 14px;display:block;object-fit:cover}
+.pwa-h{font-size:1.1rem;font-weight:700;margin:0 0 6px;line-height:1.3}
+.pwa-sub{font-size:.82rem;color:var(--mut);margin:0 0 14px;line-height:1.45}
+.pwa-steps{background:var(--bg);border-radius:10px;padding:11px 13px;font-size:.8rem;text-align:left;margin-bottom:16px;line-height:1.6;color:var(--fg)}
+.pwa-btns{display:flex;flex-direction:column;gap:10px}
+.pwa-btn-main{padding:14px;border-radius:11px;border:0;background:linear-gradient(135deg,#c9941a,#f0c040);color:#05091d;font:700 .9rem Inter,system-ui,sans-serif;cursor:pointer;letter-spacing:.01em}
+.pwa-btn-sec{padding:12px;border-radius:11px;border:1px solid var(--bd);background:transparent;color:var(--mut);font:600 .88rem Inter,system-ui,sans-serif;cursor:pointer}
+#pwa-tip:not([hidden]){position:fixed;bottom:calc(env(safe-area-inset-bottom,0px) + 76px);left:50%;transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:12px 18px;border-radius:12px;font-size:.8rem;text-align:center;max-width:270px;width:max-content;box-shadow:0 4px 24px rgba(0,0,0,.5);z-index:9998;display:block;animation:fadeUp .25s ease}
+#pwa-tip::after{content:"";position:absolute;bottom:-7px;left:50%;transform:translateX(-50%);border:7px solid transparent;border-top-color:var(--fg);border-bottom:0}
+@keyframes fadeUp{from{opacity:0;transform:translateX(-50%) translateY(8px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
 footer{margin-top:28px;font-size:.78rem;color:var(--mut)}
 </style>
 </head>
@@ -142,8 +155,73 @@ footer{margin-top:28px;font-size:.78rem;color:var(--mut)}
   <nav id="nav" class="chips"></nav>
   <div id="app"><p class="hint">Loading…</p></div>
   <footer id="foot"></footer>
+
+  <div id="pwa-modal" hidden role="dialog" aria-modal="true" aria-label="Install app">
+    <div class="pwa-card">
+      <img src="icons/apple-touch-icon.png" alt="Big Boy Dynasty League" class="pwa-ico">
+      <h3 class="pwa-h">Welcome to the<br>Big Boy Dynasty League</h3>
+      <p class="pwa-sub">Your dynasty hub — built to complement your league on Sleeper.</p>
+      <div id="pwa-steps" class="pwa-steps"></div>
+      <div class="pwa-btns">
+        <button id="pwa-action" class="pwa-btn-main"></button>
+        <button id="pwa-later" class="pwa-btn-sec">Maybe Later</button>
+      </div>
+    </div>
+  </div>
+  <div id="pwa-tip" hidden aria-live="polite"></div>
 </main>
 <script>
+/* ── PWA install prompt ──────────────────────────────────── */
+let deferredPrompt = null;
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredPrompt = e; });
+(function initPWA() {
+  if (window.matchMedia('(display-mode:standalone)').matches || navigator.standalone) return;
+  try { if (localStorage.getItem('pwa-dismissed')) return; } catch (_) {}
+  const ua = navigator.userAgent;
+  if (!/Android|iPhone|iPad|iPod/.test(ua)) return; // desktop: skip
+  const isIOS = /iPhone|iPad|iPod/.test(ua);
+  const modal = document.getElementById('pwa-modal');
+  const steps = document.getElementById('pwa-steps');
+  const action = document.getElementById('pwa-action');
+  const later  = document.getElementById('pwa-later');
+  const tip    = document.getElementById('pwa-tip');
+  if (isIOS) {
+    steps.innerHTML = 'Open this link in <strong>Safari</strong>. Tap the <strong>Share ↑</strong> button at the bottom of the screen, then tap <strong>Add to Home Screen</strong>.<br><small style="color:var(--mut)">Chrome and other iOS browsers cannot install apps.</small>';
+    action.textContent = 'Show me how';
+    action.onclick = () => {
+      modal.hidden = true;
+      tip.innerHTML = 'Tap <strong>Share ↑</strong> below, then <strong>Add to Home Screen</strong>';
+      tip.hidden = false;
+      setTimeout(() => { tip.hidden = true; }, 9000);
+    };
+  } else {
+    steps.innerHTML = 'Tap the browser menu <strong>⋮</strong> and look for <strong>Add to Home Screen</strong> or <strong>Install App</strong>.';
+    action.textContent = 'Install App';
+    action.onclick = async () => {
+      if (deferredPrompt) {
+        await deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        deferredPrompt = null;
+        if (outcome === 'accepted') {
+          try { localStorage.setItem('pwa-dismissed','1'); } catch (_) {}
+          modal.hidden = true;
+        }
+      } else {
+        modal.hidden = true;
+        tip.innerHTML = 'Tap <strong>⋮</strong> in your browser, then <strong>Add to Home Screen</strong>';
+        tip.hidden = false;
+        setTimeout(() => { tip.hidden = true; }, 9000);
+      }
+    };
+  }
+  later.onclick = () => {
+    try { localStorage.setItem('pwa-dismissed','1'); } catch (_) {}
+    modal.hidden = true;
+  };
+  modal.hidden = false;
+})();
+
+
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const ord = n => ({1:"1st",2:"2nd",3:"3rd"}[n] || n + "th");
