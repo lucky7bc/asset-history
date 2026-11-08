@@ -54,7 +54,8 @@ def crawl_league(league_id, out):
         # Newest league only: who owns every traded future pick right now
         if out["current"] is None:
             out["current"] = {"season": season, "league_id": league_id,
-                              "rounds": int((lg.get("settings") or {}).get("draft_rounds") or 4)}
+                              "rounds": int((lg.get("settings") or {}).get("draft_rounds") or 4),
+                              "week": int((lg.get("settings") or {}).get("leg") or 0)}
             for tp in get(f"/league/{league_id}/traded_picks") or []:
                 out["pick_owners"][f"{tp['season']}-{tp['round']}-{tp['roster_id']}"] = tp["owner_id"]
 
