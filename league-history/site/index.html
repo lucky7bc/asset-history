@@ -85,7 +85,7 @@ input:focus-visible,a:focus-visible{outline:2px solid var(--ac);outline-offset:2
 .ow.exp{max-width:none;white-space:normal;word-break:break-word}
 .pln{color:var(--fg);font-weight:600;text-decoration:none;flex:1;min-width:0}
 .rr{padding:10px 0;border-top:1px solid var(--bd);font-size:.82rem;display:flex;gap:10px;align-items:center}
-.rr b{min-width:52px;font-size:1rem}.rr .ri{flex:1;min-width:0;color:var(--mut)}
+.rr b{min-width:52px;font-size:1rem}.rr .ri{flex:1;min-width:0;color:var(--mut);text-align:right}
 .lrow{display:flex;gap:8px;align-items:center;padding:8px 0;border-top:1px solid var(--bd);font-size:.82rem}
 .lp{font-weight:700;font-size:.88rem;min-width:44px;text-align:right}
 .lpos{color:var(--lpos)}.lneg{color:var(--lneg)}
@@ -189,12 +189,11 @@ footer{margin-top:28px;font-size:.78rem;color:var(--mut)}
 .dash-tile-icon svg{width:22px;height:22px;display:block}
 .dash-tile-name{font-size:.88rem;font-weight:700;margin-top:4px}
 .dash-tile-teaser{font-size:.74rem;color:var(--mut);line-height:1.35}
-@media(max-width:479px){.dash-tile:last-child:nth-child(odd){grid-column:span 2}}
+
 @media(max-width:599px){main{padding-bottom:68px}#tab-bar{display:flex}#nav{display:none}}
 @media(min-width:480px){.dash-grid{grid-template-columns:repeat(3,1fr)}}
 /* ─── App header + theme toggle ───────────────────────────── */
-.app-header{display:flex;align-items:center;justify-content:space-between;margin:4px 0 12px}
-.app-header h1{margin:0}
+.app-header{display:flex;justify-content:flex-end;margin:4px 0 8px}
 #theme-btn{background:none;border:1px solid var(--bd);border-radius:8px;padding:5px 9px;cursor:pointer;color:var(--fg);font-size:1rem;line-height:1;flex:none;transition:background .15s}
 #theme-btn:hover{background:var(--tag)}
 </style>
@@ -202,7 +201,6 @@ footer{margin-top:28px;font-size:.78rem;color:var(--mut)}
 <body>
 <main>
   <div class="app-header">
-    <h1>League Asset History</h1>
     <button id="theme-btn" onclick="toggleTheme()" aria-label="Toggle color scheme"></button>
   </div>
   <nav id="nav" class="chips"></nav>
@@ -806,9 +804,11 @@ function viewDashboard() {
   const luckRows     = MATCHUPS.length ? luckIndex()     : [];
   const cur          = D.current || {};
   const tiles = [
+    { href: "#search",  icon: "search",  name: "Search",
+      teaser: "Find any player or pick" },
     { href: "#draft",   icon: "draft",   name: "Draft Board",
       teaser: draftSeasons.length
-        ? `${draftSeasons[0]} · ${Object.values(D.draft_results).filter(d => d.season === draftSeasons[0]).length} picks`
+        ? `${draftSeasons[0]} \u00b7 ${Object.values(D.draft_results).filter(d => d.season === draftSeasons[0]).length} picks`
         : "No drafts yet" },
     { href: "#h2h",     icon: "h2h",     name: "H2H",
       teaser: totalGames ? `${totalGames} matchups on record` : "Head-to-head records" },
@@ -825,7 +825,7 @@ function viewDashboard() {
        <span class="dash-tile-name">${esc(t.name)}</span>
        <span class="dash-tile-teaser">${esc(t.teaser)}</span>
      </a>`).join("");
-  $("#app").innerHTML = `<div class="dash-grid">${tilesHtml}</div>`;
+  $("#app").innerHTML = `<h1>League Info</h1><div class="dash-grid">${tilesHtml}</div>`;
 }
 
 function renderNav(type) {
