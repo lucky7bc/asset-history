@@ -147,6 +147,32 @@ input:focus-visible,a:focus-visible{outline:2px solid var(--ac);outline-offset:2
 #pwa-tip::after{content:"";position:absolute;bottom:-7px;left:50%;transform:translateX(-50%);border:7px solid transparent;border-top-color:var(--fg);border-bottom:0}
 @keyframes fadeUp{from{opacity:0;transform:translateX(-50%) translateY(8px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
 footer{margin-top:28px;font-size:.78rem;color:var(--mut)}
+/* ─── Rivalry Engine ──────────────────────────────────────── */
+.rv-grid{display:grid;grid-template-columns:1fr;gap:12px;margin-top:4px}
+.rv-card{padding:14px!important}
+.rv-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:0}
+.rv-mgr{text-align:center;min-width:0;flex:1}
+.rv-mgr .av{width:42px;height:42px;font-size:14px;margin:0 auto 5px}
+.rv-mgr-name{font-size:.78rem;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rv-vs{text-align:center;flex:none;display:flex;flex-direction:column;align-items:center;gap:5px}
+.rv-vs-txt{font-size:1rem;font-weight:800;letter-spacing:.05em;color:var(--mut)}
+.rv-tier{font-size:.7rem;font-weight:700;padding:3px 8px;border-radius:99px;background:var(--tag);color:var(--fg);white-space:nowrap}
+.rv-sec{padding:8px 0;border-top:1px solid var(--bd);font-size:.82rem}
+.rv-rec{text-align:center}
+.rv-rec-lead{font-weight:700;display:block;margin-bottom:3px}
+.rv-streak{font-size:.75rem;color:var(--mut)}
+.rv-l5{display:flex;gap:5px;flex-wrap:wrap;margin-top:5px}
+.rv-chip{padding:4px 8px;border-radius:7px;font-size:.74rem;font-weight:700;line-height:1.3}
+.rv-w{background:rgba(16,185,129,.18);color:#34d399}
+.rv-l{background:rgba(248,113,113,.18);color:#f87171}
+.rv-meter-lbl{font-size:.78rem;font-weight:700;display:flex;justify-content:space-between;align-items:baseline;margin-bottom:7px}
+.rv-meter-lbl small{font-size:.7rem;color:var(--mut);font-weight:400}
+.rv-meter{height:7px;border-radius:4px;background:var(--tag);overflow:hidden}
+.rv-meter-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--ac),#f59e0b);transition:width .7s cubic-bezier(.4,0,.2,1)}
+.rv-moments{display:flex;flex-direction:column;gap:4px;font-size:.78rem;color:var(--mut)}
+.rv-moments b{color:var(--fg)}
+.rv-avg{font-size:.78rem;color:var(--mut);text-align:center}
+@media(min-width:600px){.rv-grid{grid-template-columns:1fr 1fr}}
 </style>
 </head>
 <body>
@@ -583,9 +609,158 @@ function viewLuck() {
     <p class="hint">+ = luckier than record suggests &nbsp;·&nbsp; − = tougher schedule than average</p>`;
 }
 
+/* ---------- rivalry engine ---------- */
+function computeRivalryData(oa, ob) {
+  let wa = 0, wb = 0, tie = 0, pfa = 0, pfb = 0;
+  const chrono = [];
+  for (const {s, w, p} of MATCHUPS) {
+    if (p.length !== 2) continue;
+    const [x, y] = p, xa = ownerOf(s, x.rid), xb = ownerOf(s, y.rid);
+    let a, b;
+    if (xa === oa && xb === ob) { a = x; b = y; }
+    else if (xa === ob && xb === oa) { a = y; b = x; }
+    else continue;
+    if (a.pts === 0 && b.pts === 0) continue;
+    pfa += a.pts; pfb += b.pts;
+    if (a.pts > b.pts) wa++; else if (b.pts > a.pts) wb++; else tie++;
+    chrono.push({s, w, apts: a.pts, bpts: b.pts});
+  }
+  chrono.sort((x, y) => x.s.localeCompare(y.s) || x.w - y.w);
+  const tot = wa + wb + tie;
+  const avgMargin = tot > 0 ? chrono.reduce((s, g) => s + Math.abs(g.apts - g.bpts), 0) / tot : 999;
+  const rivalryScore = tot / (1 + avgMargin);
+  // Consecutive loss streak for each owner at end of history
+  let aStreak = 0, bStreak = 0;
+  for (let i = chrono.length - 1; i >= 0; i--) {
+    const g = chrono[i];
+    if (aStreak === 0 && bStreak === 0) {
+      if (g.apts < g.bpts) aStreak = 1;
+      else if (g.bpts < g.apts) bStreak = 1;
+      else break;
+    } else if (aStreak > 0) { if (g.apts < g.bpts) aStreak++; else break; }
+    else { if (g.bpts < g.apts) bStreak++; else break; }
+  }
+  // Biggest win and worst loss from oa's perspective
+  let bigWin = null, bigLoss = null;
+  for (const g of chrono) {
+    const mg = g.apts - g.bpts;
+    if (mg > 0 && (!bigWin  || mg >  bigWin.mg))  bigWin  = {...g, mg};
+    if (mg < 0 && (!bigLoss || mg <  bigLoss.mg)) bigLoss = {...g, mg};
+  }
+  return {
+    wa, wb, tie, pfa, pfb, tot,
+    avgA: tot > 0 ? pfa / tot : 0, avgB: tot > 0 ? pfb / tot : 0,
+    avgMargin, rivalryScore, aStreak, bStreak, bigWin, bigLoss,
+    last5: [...chrono].reverse().slice(0, 5),
+  };
+}
+function revengeScore(streak, winRate, tot) {
+  if (tot < 1) return 0;
+  return Math.min(Math.round(Math.min(streak * 20, 60) + (winRate < 0.5 ? Math.min((0.5 - winRate) * 80, 40) : 0)), 100);
+}
+function meterTier(score) {
+  if (score >= 80) return "🚨 It's Personal";
+  if (score >= 50) return "😤 Revenge Mode";
+  if (score >= 20) return "🔍 Watching Closely";
+  return "😌 Even Keel";
+}
+function rivalryTier(norm) {
+  if (norm >= 75) return {emoji: "🔥", label: "Heated"};
+  if (norm >= 40) return {emoji: "⚔️", label: "Contested"};
+  if (norm >= 15) return {emoji: "👀", label: "Developing"};
+  return {emoji: "🤝", label: "Fresh"};
+}
+function viewRivalry() {
+  if (!MATCHUPS.length) { $("#app").innerHTML = `<h2>Rivalry Engine</h2><p class="hint">Re-run crawl.py to load matchup data.</p>`; return; }
+  const cur = D.current || {}, curSeason = cur.season, curWeek = cur.week;
+  if (!curWeek) {
+    $("#app").innerHTML = `<h2>Rivalry Engine</h2>
+      <div class="card2" style="text-align:center;padding:28px 20px">
+        <div style="font-size:1.6rem;margin-bottom:10px">⚡</div>
+        <div style="font-weight:700;margin-bottom:8px">One quick update needed</div>
+        <p class="hint" style="margin:0">Re-run <code>crawl.py</code> to load current week data — then come back.</p>
+      </div>`;
+    return;
+  }
+  const weekGames = MATCHUPS.filter(m => m.s === curSeason && m.w === curWeek && m.p.length === 2);
+  if (!weekGames.length) {
+    const last = [...MATCHUPS].filter(m => m.p.some(x => x.pts > 0)).sort((a, b) => b.s.localeCompare(a.s) || b.w - a.w)[0];
+    $("#app").innerHTML = `<h2>Rivalry Engine</h2>
+      <div class="card2" style="text-align:center;padding:32px 20px">
+        <div style="font-size:2rem;margin-bottom:12px">🏈</div>
+        <div style="font-weight:700;margin-bottom:8px">No matchups on the board yet</div>
+        <p class="hint" style="margin:0 0 8px">Week ${curWeek} of the ${curSeason} season hasn't kicked off — check back when the action starts.</p>
+        ${last ? `<p class="hint" style="margin:0;font-size:.76rem">Last recorded game: ${last.s} Wk ${last.w}</p>` : ""}
+      </div>`;
+    return;
+  }
+  const matchupData = weekGames.map(m => {
+    const [x, y] = m.p, oa = ownerOf(m.s, x.rid), ob = ownerOf(m.s, y.rid);
+    return {oa, ob, r: computeRivalryData(oa, ob)};
+  });
+  const maxRS = Math.max(...matchupData.map(d => d.r.rivalryScore), 0.001);
+  const cards = matchupData.map(({oa, ob, r}) => {
+    const tier = rivalryTier((r.rivalryScore / maxRS) * 100);
+    // Trailing / revenge-hungry team goes on the left
+    const aTrails = r.tot > 0 && (r.wa < r.wb || (r.wa === r.wb && r.aStreak > r.bStreak));
+    const [leftId, rightId]       = aTrails ? [oa, ob]       : [ob, oa];
+    const [leftW,  rightW]        = aTrails ? [r.wa, r.wb]   : [r.wb, r.wa];
+    const [leftSt, rightSt]       = aTrails ? [r.aStreak, r.bStreak] : [r.bStreak, r.aStreak];
+    const [leftAvg, rightAvg]     = aTrails ? [r.avgA, r.avgB] : [r.avgB, r.avgA];
+    const leftRate = r.tot > 0 ? leftW / r.tot : 0.5;
+    // Big moments from left team's perspective
+    const leftBigWin  = aTrails ? r.bigWin  : (r.bigLoss ? {mg: -r.bigLoss.mg, s: r.bigLoss.s, w: r.bigLoss.w} : null);
+    const leftBigLoss = aTrails ? r.bigLoss : (r.bigWin  ? {mg: -r.bigWin.mg,  s: r.bigWin.s,  w: r.bigWin.w}  : null);
+    // Last 5 chips from left team's perspective
+    const last5Html = r.last5.map(g => {
+      const lp = aTrails ? g.apts : g.bpts, rp = aTrails ? g.bpts : g.apts;
+      const won = lp > rp, mg = Math.abs(lp - rp).toFixed(1);
+      return `<span class="rv-chip ${won ? "rv-w" : "rv-l"}">${esc(won ? `W +${mg}` : `L \u2212${mg}`)}</span>`;
+    }).join("");
+    // Record text
+    let recTxt = r.tot === 0 ? "No history yet"
+      : leftW > rightW ? `${esc(username(leftId))} leads ${leftW}\u2013${rightW}`
+      : rightW > leftW ? `${esc(username(rightId))} leads ${rightW}\u2013${leftW}`
+      : `Dead Even ${leftW}\u2013${rightW}`;
+    if (r.tie) recTxt += ` (${r.tie}T)`;
+    // Streak callout (expressed as the WINNER's streak for impact)
+    let streakTxt = "";
+    if      (leftSt  > 1) streakTxt = `${esc(username(rightId))} has won ${leftSt} straight`;
+    else if (leftSt === 1) streakTxt = `${esc(username(rightId))} won the last meeting`;
+    else if (rightSt > 1) streakTxt = `${esc(username(leftId))} has won ${rightSt} straight`;
+    else if (rightSt === 1) streakTxt = `${esc(username(leftId))} won the last meeting`;
+    // Revenge meter
+    const meter = revengeScore(leftSt, leftRate, r.tot);
+    const avL = av(D.users?.[leftId]?.avatar  ? `https://sleepercdn.com/avatars/thumbs/${D.users[leftId].avatar}`  : null, username(leftId));
+    const avR = av(D.users?.[rightId]?.avatar ? `https://sleepercdn.com/avatars/thumbs/${D.users[rightId].avatar}` : null, username(rightId));
+    return `<div class="card2 rv-card">
+      <div class="rv-head">
+        <div class="rv-mgr">${avL}<div class="rv-mgr-name">${esc(username(leftId))}</div></div>
+        <div class="rv-vs"><span class="rv-vs-txt">VS</span><span class="rv-tier">${tier.emoji} ${esc(tier.label)}</span></div>
+        <div class="rv-mgr">${avR}<div class="rv-mgr-name">${esc(username(rightId))}</div></div>
+      </div>
+      <div class="rv-sec rv-rec"><span class="rv-rec-lead">${recTxt}</span>${streakTxt ? `<span class="rv-streak">${streakTxt}</span>` : ""}</div>
+      ${r.last5.length ? `<div class="rv-sec"><div class="mut" style="font-size:.7rem;margin-bottom:4px">${esc(username(leftId))}\u2019s last ${r.last5.length}</div><div class="rv-l5">${last5Html}</div></div>` : ""}
+      <div class="rv-sec">
+        <div class="rv-meter-lbl"><span>${esc(meterTier(meter))}</span>${meter > 0 ? `<small>${esc(username(leftId))}</small>` : ""}</div>
+        <div class="rv-meter"><div class="rv-meter-fill" style="width:${meter}%"></div></div>
+      </div>
+      ${(leftBigWin || leftBigLoss) ? `<div class="rv-sec rv-moments">
+        ${leftBigWin  ? `<div>Best win: <b>+${leftBigWin.mg.toFixed(1)} pts</b> \u00b7 ${leftBigWin.s} Wk ${leftBigWin.w}</div>`   : ""}
+        ${leftBigLoss ? `<div>Worst loss: <b>${leftBigLoss.mg.toFixed(1)} pts</b> \u00b7 ${leftBigLoss.s} Wk ${leftBigLoss.w}</div>` : ""}
+      </div>` : ""}
+      ${r.tot > 0 ? `<div class="rv-sec rv-avg">${esc(username(leftId))} avg <b>${pts1(leftAvg)}</b> &nbsp;\u00b7&nbsp; ${esc(username(rightId))} avg <b>${pts1(rightAvg)}</b></div>` : ""}
+    </div>`;
+  }).join("");
+  $("#app").innerHTML = `<h2>Rivalry Engine</h2>
+    <div class="sub">Week ${curWeek} \u00b7 ${curSeason} \u2014 the history behind every matchup</div>
+    <div class="rv-grid">${cards}</div>`;
+}
+
 function renderNav(type) {
   const items = [["", "Search", ["", "player", "pick", "trade"]], ["draft", "Drafts", ["draft"]],
-    ["h2h", "H2H", ["h2h"]], ["records", "Records", ["records"]], ["luck", "Luck", ["luck"]]];
+    ["h2h", "H2H", ["h2h"]], ["records", "Records", ["records"]], ["luck", "Luck", ["luck"]],
+    ["rivalry", "Rivalry", ["rivalry"]]];
   $("#nav").innerHTML = items.map(([h, l, ts]) => `<a class="chip${ts.includes(type) ? " on" : ""}" href="#${h}">${l}</a>`).join("");
 }
 
@@ -614,6 +789,7 @@ function route() {
   else if (type === "h2h") viewH2H(id);
   else if (type === "records") viewRecords();
   else if (type === "luck") viewLuck();
+  else if (type === "rivalry") viewRivalry();
   else viewSearch();
   window.scrollTo(0, 0);
 }
