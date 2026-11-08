@@ -14,8 +14,9 @@
 <meta name="apple-mobile-web-app-title" content="League History">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <style>
-:root{--bg:#f1f3f9;--card:#fff;--bd:#d5d9e8;--fg:#05091d;--mut:#4a5170;--ac:#2f5bec;--tag:#e3e6f0;--hit:#e2e8ff;--line:#9aa3bf}
-@media (prefers-color-scheme:dark){:root{--bg:#05091d;--card:#0e1430;--bd:#232b52;--fg:#eef1ff;--mut:#a3acd6;--ac:#6c93ff;--tag:#1b2350;--hit:#16224f;--line:#3a4580}}
+:root{--bg:#f1f3f9;--card:#fff;--bd:#d5d9e8;--fg:#05091d;--mut:#4a5170;--ac:#2f5bec;--tag:#e3e6f0;--hit:#e2e8ff;--line:#9aa3bf;--lpos:#059669;--lneg:#dc2626}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#05091d;--card:#0e1430;--bd:#232b52;--fg:#eef1ff;--mut:#a3acd6;--ac:#6c93ff;--tag:#1b2350;--hit:#16224f;--line:#3a4580;--lpos:#34d399;--lneg:#f87171}}
+:root[data-theme="dark"]{--bg:#05091d;--card:#0e1430;--bd:#232b52;--fg:#eef1ff;--mut:#a3acd6;--ac:#6c93ff;--tag:#1b2350;--hit:#16224f;--line:#3a4580;--lpos:#34d399;--lneg:#f87171}
 *{box-sizing:border-box}
 html,body{margin:0}
 body{font:16px/1.4 Inter,system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--bg);color:var(--fg);padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
@@ -79,7 +80,7 @@ input:focus-visible,a:focus-visible{outline:2px solid var(--ac);outline-offset:2
 .bar{display:flex;height:10px;border-radius:5px;overflow:hidden;margin:10px 0;background:var(--tag)}
 .bar i{background:var(--ac)}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.ppts{background:rgba(16,185,129,.15);color:#34d399;padding:2px 8px;border-radius:12px;font-weight:600;font-size:.75rem;white-space:nowrap;display:inline-block;margin-top:3px}
+.ppts{background:rgba(16,185,129,.15);color:var(--lpos);padding:2px 8px;border-radius:12px;font-weight:600;font-size:.75rem;white-space:nowrap;display:inline-block;margin-top:3px}
 .ow{max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer;display:inline-block;vertical-align:bottom}
 .ow.exp{max-width:none;white-space:normal;word-break:break-word}
 .pln{color:var(--fg);font-weight:600;text-decoration:none;flex:1;min-width:0}
@@ -87,7 +88,7 @@ input:focus-visible,a:focus-visible{outline:2px solid var(--ac);outline-offset:2
 .rr b{min-width:52px;font-size:1rem}.rr .ri{flex:1;min-width:0;color:var(--mut)}
 .lrow{display:flex;gap:8px;align-items:center;padding:8px 0;border-top:1px solid var(--bd);font-size:.82rem}
 .lp{font-weight:700;font-size:.88rem;min-width:44px;text-align:right}
-.lpos{color:#34d399}.lneg{color:#f87171}
+.lpos{color:var(--lpos)}.lneg{color:var(--lneg)}
 .mrow{display:flex;justify-content:space-between;padding:7px 0;border-top:1px solid var(--bd);font-size:.82rem}
 .pi{display:block;line-height:1.15;margin:3px 0}
 .pp{display:block;font-size:.65rem;color:var(--mut)}
@@ -149,7 +150,7 @@ input:focus-visible,a:focus-visible{outline:2px solid var(--ac);outline-offset:2
 footer{margin-top:28px;font-size:.78rem;color:var(--mut)}
 /* ─── Rivalry Engine ──────────────────────────────────────── */
 .rv-grid{display:grid;grid-template-columns:1fr;gap:12px;margin-top:4px}
-.rv-card{padding:14px!important}
+.rv-card{padding:14px!important;background:var(--hit)!important}
 .rv-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:0}
 .rv-mgr{text-align:center;min-width:0;flex:1}
 .rv-mgr .av{width:42px;height:42px;font-size:14px;margin:0 auto 5px}
@@ -163,8 +164,8 @@ footer{margin-top:28px;font-size:.78rem;color:var(--mut)}
 .rv-streak{font-size:.75rem;color:var(--mut)}
 .rv-l5{display:flex;gap:5px;flex-wrap:wrap;margin-top:5px}
 .rv-chip{padding:4px 8px;border-radius:7px;font-size:.74rem;font-weight:700;line-height:1.3}
-.rv-w{background:rgba(16,185,129,.18);color:#34d399}
-.rv-l{background:rgba(248,113,113,.18);color:#f87171}
+.rv-w{background:rgba(16,185,129,.18);color:var(--lpos)}
+.rv-l{background:rgba(248,113,113,.18);color:var(--lneg)}
 .rv-meter-lbl{font-size:.78rem;font-weight:700;display:flex;justify-content:space-between;align-items:baseline;margin-bottom:7px}
 .rv-meter-lbl small{font-size:.7rem;color:var(--mut);font-weight:400}
 .rv-meter{height:7px;border-radius:4px;background:var(--tag);overflow:hidden}
@@ -175,8 +176,9 @@ footer{margin-top:28px;font-size:.78rem;color:var(--mut)}
 .rv-avg{font-size:.78rem;color:var(--mut);text-align:center}
 @media(min-width:600px){.rv-grid{grid-template-columns:1fr 1fr}}
 /* ─── Bottom tab bar ──────────────────────────────────────── */
-#tab-bar{position:fixed;bottom:0;left:0;right:0;z-index:200;background:var(--card);border-top:1px solid var(--bd);padding-bottom:env(safe-area-inset-bottom,0px);display:none;grid-template-columns:repeat(6,1fr)}
-#tab-bar a{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:9px 2px 7px;gap:3px;color:var(--mut);text-decoration:none;font-size:.6rem;font-weight:600;line-height:1.1;min-height:52px}
+#tab-bar{position:fixed;bottom:0;left:0;right:0;z-index:200;background:var(--card);border-top:1px solid var(--bd);padding-bottom:env(safe-area-inset-bottom,0px);display:none;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+#tab-bar::-webkit-scrollbar{display:none}
+#tab-bar a{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:9px 4px 7px;gap:3px;color:var(--mut);text-decoration:none;font-size:.6rem;font-weight:600;line-height:1.1;min-height:52px;flex:none;min-width:62px}
 #tab-bar a.on{color:var(--ac)}
 #tab-bar a svg{width:20px;height:20px;flex:none;stroke-width:1.75}
 /* ─── Dashboard ───────────────────────────────────────────── */
@@ -188,13 +190,21 @@ footer{margin-top:28px;font-size:.78rem;color:var(--mut)}
 .dash-tile-name{font-size:.88rem;font-weight:700;margin-top:4px}
 .dash-tile-teaser{font-size:.74rem;color:var(--mut);line-height:1.35}
 @media(max-width:479px){.dash-tile:last-child:nth-child(odd){grid-column:span 2}}
-@media(max-width:599px){main{padding-bottom:68px}#tab-bar{display:grid}#nav{display:none}}
+@media(max-width:599px){main{padding-bottom:68px}#tab-bar{display:flex}#nav{display:none}}
 @media(min-width:480px){.dash-grid{grid-template-columns:repeat(3,1fr)}}
+/* ─── App header + theme toggle ───────────────────────────── */
+.app-header{display:flex;align-items:center;justify-content:space-between;margin:4px 0 12px}
+.app-header h1{margin:0}
+#theme-btn{background:none;border:1px solid var(--bd);border-radius:8px;padding:5px 9px;cursor:pointer;color:var(--fg);font-size:1rem;line-height:1;flex:none;transition:background .15s}
+#theme-btn:hover{background:var(--tag)}
 </style>
 </head>
 <body>
 <main>
-  <h1>League Info</h1>
+  <div class="app-header">
+    <h1>League Asset History</h1>
+    <button id="theme-btn" onclick="toggleTheme()" aria-label="Toggle color scheme"></button>
+  </div>
   <nav id="nav" class="chips"></nav>
   <div id="app"><p class="hint">Loading…</p></div>
   <footer id="foot"></footer>
@@ -279,6 +289,7 @@ const NAV_ICONS = {
   records: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg>`,
   luck:    `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`,
   rivalry: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>`,
+  search:  `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>`,
 };
 let D, ITEMS = [], MATCHUPS = [];
 
@@ -724,6 +735,7 @@ function viewRivalry() {
     const [x, y] = m.p, oa = ownerOf(m.s, x.rid), ob = ownerOf(m.s, y.rid);
     return {oa, ob, r: computeRivalryData(oa, ob)};
   });
+  matchupData.sort((a, b) => b.r.rivalryScore - a.r.rivalryScore);
   const maxRS = Math.max(...matchupData.map(d => d.r.rivalryScore), 0.001);
   const cards = matchupData.map(({oa, ob, r}) => {
     const tier = rivalryTier((r.rivalryScore / maxRS) * 100);
@@ -772,10 +784,12 @@ function viewRivalry() {
         <div class="rv-meter-lbl"><span>${esc(meterTier(meter))}</span>${meter > 0 ? `<small>${esc(username(leftId))}</small>` : ""}</div>
         <div class="rv-meter"><div class="rv-meter-fill" style="width:${meter}%"></div></div>
       </div>
-      ${(leftBigWin || leftBigLoss) ? `<div class="rv-sec rv-moments">
-        ${leftBigWin  ? `<div>${esc(username(leftId))} won by <b>${leftBigWin.mg.toFixed(1)}</b> \u00b7 Week ${leftBigWin.w}, ${leftBigWin.s}</div>`                    : ""}
-        ${leftBigLoss ? `<div>${esc(username(leftId))} lost by <b>${Math.abs(leftBigLoss.mg).toFixed(1)}</b> \u00b7 Week ${leftBigLoss.w}, ${leftBigLoss.s}</div>` : ""}
-      </div>` : ""}
+      ${(() => { const rBW = leftBigLoss ? {mg: Math.abs(leftBigLoss.mg), s: leftBigLoss.s, w: leftBigLoss.w} : null;
+        return (leftBigWin || rBW) ? `<div class="rv-sec rv-moments">
+          <div class="mut" style="font-size:.7rem;margin-bottom:4px">Biggest Wins in Rivalry</div>
+          ${leftBigWin ? `<div>${esc(username(leftId))} won by <b>${leftBigWin.mg.toFixed(1)}</b> \u00b7 Week ${leftBigWin.w}, ${leftBigWin.s}</div>` : ""}
+          ${rBW        ? `<div>${esc(username(rightId))} won by <b>${rBW.mg.toFixed(1)}</b> \u00b7 Week ${rBW.w}, ${rBW.s}</div>` : ""}
+        </div>` : ""; })()}
       ${r.tot > 0 ? `<div class="rv-sec rv-avg">${esc(username(leftId))} avg <b>${pts1(leftAvg)}</b> &nbsp;\u00b7&nbsp; ${esc(username(rightId))} avg <b>${pts1(rightAvg)}</b></div>` : ""}
     </div>`;
   }).join("");
@@ -811,16 +825,13 @@ function viewDashboard() {
        <span class="dash-tile-name">${esc(t.name)}</span>
        <span class="dash-tile-teaser">${esc(t.teaser)}</span>
      </a>`).join("");
-  $("#app").innerHTML =
-    `<input id="q" type="search" placeholder=\`Search a player or pick (e.g. \u201c2026 1st\u201d)\` autocomplete="off">
-     <ul class="results" id="res"></ul>
-     <div class="dash-grid">${tilesHtml}</div>`;
-  $("#q").addEventListener("input", e => renderResults(e.target.value));
+  $("#app").innerHTML = `<div class="dash-grid">${tilesHtml}</div>`;
 }
 
 function renderNav(type) {
   const items = [
-    ["",        "Home",    "home",    ["", "player", "pick", "trade"]],
+    ["",        "Home",    "home",    [""]],
+    ["search",  "Search",  "search",  ["search", "player", "pick", "trade"]],
     ["draft",   "Drafts",  "draft",   ["draft"]],
     ["h2h",     "H2H",     "h2h",     ["h2h"]],
     ["records", "Records", "records", ["records"]],
@@ -832,11 +843,16 @@ function renderNav(type) {
 }
 
 function viewSearch(q = "") {
-  $("#app").innerHTML = `<input id="q" type="search" placeholder="Search a player or pick (e.g. “2026 1st”)" autocomplete="off" value="${esc(q)}">
+  $("#app").innerHTML = `<h2>Search Asset History</h2>
+    <input id="q" type="search" placeholder="Search a player or pick (e.g. \u20182026 1st\u2019)" autocomplete="off" value="${esc(q)}">
     <ul class="results" id="res"></ul>`;
   $("#q").addEventListener("input", e => renderResults(e.target.value));
   renderResults(q);
 }
+
+
+
+
 function renderResults(q) {
   const words = q.toLowerCase().split(/\s+/).filter(Boolean), res = $("#res");
   if (!words.length) { res.innerHTML = `<li class="hint">Type a player name, or a pick like “2025 2nd”.</li>`; return; }
@@ -857,9 +873,33 @@ function route() {
   else if (type === "records") viewRecords();
   else if (type === "luck") viewLuck();
   else if (type === "rivalry") viewRivalry();
+  else if (type === "search") viewSearch();
   else viewDashboard();
   window.scrollTo(0, 0);
 }
+
+/* ---------- theme ---------- */
+function initTheme() {
+  const saved = localStorage.getItem("theme");
+  if (saved) document.documentElement.dataset.theme = saved;
+  renderThemeBtn();
+}
+function toggleTheme() {
+  const cur = document.documentElement.dataset.theme;
+  const isDark = cur ? cur === "dark" : window.matchMedia("(prefers-color-scheme:dark)").matches;
+  document.documentElement.dataset.theme = isDark ? "light" : "dark";
+  localStorage.setItem("theme", document.documentElement.dataset.theme);
+  renderThemeBtn();
+}
+function renderThemeBtn() {
+  const btn = document.getElementById("theme-btn");
+  if (!btn) return;
+  const cur = document.documentElement.dataset.theme;
+  const isDark = cur ? cur === "dark" : window.matchMedia("(prefers-color-scheme:dark)").matches;
+  btn.textContent = isDark ? "☀️" : "🌙";
+  btn.title = isDark ? "Switch to light mode" : "Switch to dark mode";
+}
+initTheme();
 
 /* ---------- boot ---------- */
 function buildItems() {
