@@ -169,10 +169,27 @@ footer{margin-top:28px;font-size:.78rem;color:var(--mut)}
 .rv-meter-lbl small{font-size:.7rem;color:var(--mut);font-weight:400}
 .rv-meter{height:7px;border-radius:4px;background:var(--tag);overflow:hidden}
 .rv-meter-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--ac),#f59e0b);transition:width .7s cubic-bezier(.4,0,.2,1)}
+.rv-recent-row{display:flex;justify-content:space-between;align-items:center;padding:3px 0;font-size:.78rem}
 .rv-moments{display:flex;flex-direction:column;gap:4px;font-size:.78rem;color:var(--mut)}
 .rv-moments b{color:var(--fg)}
 .rv-avg{font-size:.78rem;color:var(--mut);text-align:center}
 @media(min-width:600px){.rv-grid{grid-template-columns:1fr 1fr}}
+/* ─── Bottom tab bar ──────────────────────────────────────── */
+#tab-bar{position:fixed;bottom:0;left:0;right:0;z-index:200;background:var(--card);border-top:1px solid var(--bd);padding-bottom:env(safe-area-inset-bottom,0px);display:none;grid-template-columns:repeat(6,1fr)}
+#tab-bar a{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:9px 2px 7px;gap:3px;color:var(--mut);text-decoration:none;font-size:.6rem;font-weight:600;line-height:1.1;min-height:52px}
+#tab-bar a.on{color:var(--ac)}
+#tab-bar a svg{width:20px;height:20px;flex:none;stroke-width:1.75}
+/* ─── Dashboard ───────────────────────────────────────────── */
+.dash-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:8px}
+.dash-tile{display:flex;flex-direction:column;gap:3px;padding:14px 12px;background:var(--card);border:1px solid var(--bd);border-radius:12px;color:var(--fg);text-decoration:none}
+.dash-tile:hover,.dash-tile:focus-visible{background:var(--hit)}
+.dash-tile-icon{color:var(--ac)}
+.dash-tile-icon svg{width:22px;height:22px;display:block}
+.dash-tile-name{font-size:.88rem;font-weight:700;margin-top:4px}
+.dash-tile-teaser{font-size:.74rem;color:var(--mut);line-height:1.35}
+@media(max-width:479px){.dash-tile:last-child:nth-child(odd){grid-column:span 2}}
+@media(max-width:599px){main{padding-bottom:68px}#tab-bar{display:grid}#nav{display:none}}
+@media(min-width:480px){.dash-grid{grid-template-columns:repeat(3,1fr)}}
 </style>
 </head>
 <body>
@@ -195,6 +212,7 @@ footer{margin-top:28px;font-size:.78rem;color:var(--mut)}
     </div>
   </div>
   <div id="pwa-tip" hidden aria-live="polite"></div>
+  <nav id="tab-bar"></nav>
 </main>
 <script>
 /* ── PWA install prompt ──────────────────────────────────── */
@@ -254,6 +272,14 @@ const ord = n => ({1:"1st",2:"2nd",3:"3rd"}[n] || n + "th");
 const fmt = ms => ms ? new Date(ms).toLocaleDateString(undefined, {year:"numeric", month:"short", day:"numeric"}) : "";
 const ARROW = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg>`;
 const TICKET = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 7h16v3a2 2 0 0 0 0 4v3H4v-3a2 2 0 0 0 0-4z"/></svg>`;
+const NAV_ICONS = {
+  home:    `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>`,
+  draft:   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>`,
+  h2h:     `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`,
+  records: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg>`,
+  luck:    `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`,
+  rivalry: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>`,
+};
 let D, ITEMS = [], MATCHUPS = [];
 
 /* ---------- lookups ---------- */
@@ -373,14 +399,14 @@ const nowPill = c => pill(c.holder ? "Now: " + c.holder : "Not on a roster", "no
 
 function viewPlayer(pid) {
   const p = D.players[pid] || {name: pid}, c = chain(null, pid);
-  $("#app").innerHTML = `<a href="#">← Search</a><h2>${esc(p.name)}</h2>
+  $("#app").innerHTML = `<a href="#">← Home</a><h2>${esc(p.name)}</h2>
     <div class="sub">${esc([p.pos, p.team].filter(Boolean).join(" · "))}${p.pos || p.team ? " · " : ""}${c.trades} trade${c.trades === 1 ? "" : "s"} in this league${HAS ? " · " + pts1(ptsAll(pid, "0")) + " pts scored" : ""}</div>
     <div class="spine">${c.html}${nowPill(c)}</div>`;
 }
 
 function viewPick(key) {
   const [s, r, o] = key.split("-"), c = chain(key, null), d = D.draft_results[key];
-  $("#app").innerHTML = `<a href="#">← Search</a><h2>${esc(s + " " + ord(+r) + "-round pick")}</h2>
+  $("#app").innerHTML = `<a href="#">← Home</a><h2>${esc(s + " " + ord(+r) + "-round pick")}</h2>
     <div class="sub">Originally ${esc(team(s, o))} · ${c.trades} trade${c.trades === 1 ? "" : "s"}${d ? " · became " + esc(pname(d.player_id)) : ""}</div>
     <div class="spine">${c.html}${nowPill(c)}</div>`;
 }
@@ -715,7 +741,8 @@ function viewRivalry() {
     const last5Html = r.last5.map(g => {
       const lp = aTrails ? g.apts : g.bpts, rp = aTrails ? g.bpts : g.apts;
       const won = lp > rp, mg = Math.abs(lp - rp).toFixed(1);
-      return `<span class="rv-chip ${won ? "rv-w" : "rv-l"}">${esc(won ? `W +${mg}` : `L \u2212${mg}`)}</span>`;
+      const winner = esc(username(won ? leftId : rightId));
+      return `<div class="rv-recent-row"><span class="${won ? "lpos" : "lneg"}" style="font-weight:700">${winner} by ${mg}</span><span class="mut">Week ${g.w}, ${g.s}</span></div>`;
     }).join("");
     // Record text
     let recTxt = r.tot === 0 ? "No history yet"
@@ -740,14 +767,14 @@ function viewRivalry() {
         <div class="rv-mgr">${avR}<div class="rv-mgr-name">${esc(username(rightId))}</div></div>
       </div>
       <div class="rv-sec rv-rec"><span class="rv-rec-lead">${recTxt}</span>${streakTxt ? `<span class="rv-streak">${streakTxt}</span>` : ""}</div>
-      ${r.last5.length ? `<div class="rv-sec"><div class="mut" style="font-size:.7rem;margin-bottom:4px">${esc(username(leftId))}\u2019s last ${r.last5.length}</div><div class="rv-l5">${last5Html}</div></div>` : ""}
+      ${r.last5.length ? `<div class="rv-sec"><div class="mut" style="font-size:.7rem;margin-bottom:5px">Last ${r.last5.length} matchups</div>${last5Html}</div>` : ""}
       <div class="rv-sec">
         <div class="rv-meter-lbl"><span>${esc(meterTier(meter))}</span>${meter > 0 ? `<small>${esc(username(leftId))}</small>` : ""}</div>
         <div class="rv-meter"><div class="rv-meter-fill" style="width:${meter}%"></div></div>
       </div>
       ${(leftBigWin || leftBigLoss) ? `<div class="rv-sec rv-moments">
-        ${leftBigWin  ? `<div>Best win: <b>+${leftBigWin.mg.toFixed(1)} pts</b> \u00b7 ${leftBigWin.s} Wk ${leftBigWin.w}</div>`   : ""}
-        ${leftBigLoss ? `<div>Worst loss: <b>${leftBigLoss.mg.toFixed(1)} pts</b> \u00b7 ${leftBigLoss.s} Wk ${leftBigLoss.w}</div>` : ""}
+        ${leftBigWin  ? `<div>${esc(username(leftId))} won by <b>${leftBigWin.mg.toFixed(1)}</b> \u00b7 Week ${leftBigWin.w}, ${leftBigWin.s}</div>`                    : ""}
+        ${leftBigLoss ? `<div>${esc(username(leftId))} lost by <b>${Math.abs(leftBigLoss.mg).toFixed(1)}</b> \u00b7 Week ${leftBigLoss.w}, ${leftBigLoss.s}</div>` : ""}
       </div>` : ""}
       ${r.tot > 0 ? `<div class="rv-sec rv-avg">${esc(username(leftId))} avg <b>${pts1(leftAvg)}</b> &nbsp;\u00b7&nbsp; ${esc(username(rightId))} avg <b>${pts1(rightAvg)}</b></div>` : ""}
     </div>`;
@@ -757,11 +784,51 @@ function viewRivalry() {
     <div class="rv-grid">${cards}</div>`;
 }
 
+/* ---------- dashboard ---------- */
+function viewDashboard() {
+  const draftSeasons = [...new Set(Object.values(D.draft_results).map(d => d.season))].sort().reverse();
+  const totalGames   = MATCHUPS.filter(m => m.p.length === 2).length;
+  const recs         = MATCHUPS.length ? leagueRecords() : null;
+  const luckRows     = MATCHUPS.length ? luckIndex()     : [];
+  const cur          = D.current || {};
+  const tiles = [
+    { href: "#draft",   icon: "draft",   name: "Draft Board",
+      teaser: draftSeasons.length
+        ? `${draftSeasons[0]} · ${Object.values(D.draft_results).filter(d => d.season === draftSeasons[0]).length} picks`
+        : "No drafts yet" },
+    { href: "#h2h",     icon: "h2h",     name: "H2H",
+      teaser: totalGames ? `${totalGames} matchups on record` : "Head-to-head records" },
+    { href: "#records", icon: "records", name: "Records",
+      teaser: recs?.hi ? `High score: ${pts1(recs.hi.pts)} pts` : "All-time milestones" },
+    { href: "#luck",    icon: "luck",    name: "Luck Index",
+      teaser: luckRows[0] ? `${username(luckRows[0].oid)} leads (+${pts1(luckRows[0].luck)})` : "Expected vs actual wins" },
+    { href: "#rivalry", icon: "rivalry", name: "Rivalry Engine",
+      teaser: cur.week ? `Week ${cur.week} \u00b7 ${cur.season} matchups` : "Matchup rivalry breakdowns" },
+  ];
+  const tilesHtml = tiles.map(t =>
+    `<a class="dash-tile" href="${esc(t.href)}">
+       <span class="dash-tile-icon">${NAV_ICONS[t.icon]}</span>
+       <span class="dash-tile-name">${esc(t.name)}</span>
+       <span class="dash-tile-teaser">${esc(t.teaser)}</span>
+     </a>`).join("");
+  $("#app").innerHTML =
+    `<input id="q" type="search" placeholder=\`Search a player or pick (e.g. \u201c2026 1st\u201d)\` autocomplete="off">
+     <ul class="results" id="res"></ul>
+     <div class="dash-grid">${tilesHtml}</div>`;
+  $("#q").addEventListener("input", e => renderResults(e.target.value));
+}
+
 function renderNav(type) {
-  const items = [["", "Search", ["", "player", "pick", "trade"]], ["draft", "Drafts", ["draft"]],
-    ["h2h", "H2H", ["h2h"]], ["records", "Records", ["records"]], ["luck", "Luck", ["luck"]],
-    ["rivalry", "Rivalry", ["rivalry"]]];
-  $("#nav").innerHTML = items.map(([h, l, ts]) => `<a class="chip${ts.includes(type) ? " on" : ""}" href="#${h}">${l}</a>`).join("");
+  const items = [
+    ["",        "Home",    "home",    ["", "player", "pick", "trade"]],
+    ["draft",   "Drafts",  "draft",   ["draft"]],
+    ["h2h",     "H2H",     "h2h",     ["h2h"]],
+    ["records", "Records", "records", ["records"]],
+    ["luck",    "Luck",    "luck",    ["luck"]],
+    ["rivalry", "Rivalry", "rivalry", ["rivalry"]],
+  ];
+  $("#nav").innerHTML     = items.map(([h, l,, ts]) => `<a class="chip${ts.includes(type) ? " on" : ""}" href="#${h}">${esc(l)}</a>`).join("");
+  $("#tab-bar").innerHTML = items.map(([h, l, ic, ts]) => `<a class="${ts.includes(type) ? "on" : ""}" href="#${h}">${NAV_ICONS[ic]}<span>${esc(l)}</span></a>`).join("");
 }
 
 function viewSearch(q = "") {
@@ -790,7 +857,7 @@ function route() {
   else if (type === "records") viewRecords();
   else if (type === "luck") viewLuck();
   else if (type === "rivalry") viewRivalry();
-  else viewSearch();
+  else viewDashboard();
   window.scrollTo(0, 0);
 }
 
