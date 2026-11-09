@@ -221,7 +221,8 @@ footer{margin-top:28px;font-size:.78rem;color:var(--mut)}
 .tl-trade-side{flex:1;min-width:0}
 .tl-trade-side-r{text-align:right}
 .tl-trade-mgr{font-weight:600;font-size:.77rem;margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.tl-trade-items{font-size:.73rem;color:var(--mut);line-height:1.4}
+.tl-trade-lbl{font-size:.68rem;text-transform:uppercase;letter-spacing:.04em;margin:3px 0 2px}
+.tl-trade-items{font-size:.82rem;line-height:1.5}
 .tl-trade-div{flex:none;font-size:1rem;color:var(--mut);padding-top:1px;align-self:center}
 .tl-mu-row{margin-top:6px;display:flex;flex-direction:column;gap:4px}
 .tl-mu-team{display:flex;align-items:center;gap:6px;font-size:.82rem}
@@ -880,12 +881,23 @@ function sideAssets(t, rid) {
 }
 function fmtAssets(pids, picks) {
   const parts = [
-    ...pids.slice(0, 2).map(pid => esc(D.players[pid]?.name?.split(" ").pop() || "?")),
-    ...picks.slice(0, 2).map(p => esc(`\u2019${String(p.season).slice(2)} Rd ${p.round}`)),
+    ...pids.slice(0, 3).map(pid => esc(D.players[pid]?.name || "Unknown")),
+    ...picks.slice(0, 3).map(p => esc(`${p.season} Round ${p.round}`)),
   ];
   const extra = pids.length + picks.length - parts.length;
-  if (extra > 0) parts.push(`+${extra}`);
+  if (extra > 0) parts.push(`+${extra} more`);
   return parts.join(", ") || "\u2014";
+}
+function tradeLabel(t) {
+  const r1 = (t.picks||[]).filter(p => p.round === 1).length;
+  const pCount = Object.keys(t.adds||{}).length;
+  const pkCount = (t.picks||[]).length;
+  if (r1 >= 2) return `${r1} first-round picks exchanged`;
+  if (r1 === 1 && pCount >= 2) return "Package deal \u00b7 1st-round pick included";
+  if (r1 === 1) return "1st-round pick included";
+  if (pCount >= 4) return `${pCount}-player blockbuster`;
+  if (pkCount >= 3) return `${pkCount}-pick package`;
+  return `${pCount} player${pCount !== 1 ? "s" : ""} \u00b7 ${pkCount} pick${pkCount !== 1 ? "s" : ""}`;
 }
 function buildTimeline() {
   const evs = [];
@@ -920,46 +932,72 @@ function buildTimeline() {
     evs.push({type:"champion", season:s, ts:new Date(+s,11,25).getTime(), full:true,
       data:{champOid, ruOid, record:`${cw}\u2013${cl}`}});
   }
-  // 4 · Records (walk chronologically)
+  // 4 · Records — emit threshold milestones + always include the current all-time record
+  const scoreThresh = [150, 175, 200, 225, 250];
+  const blowThresh  = [25, 50, 75, 100];
+  const rsTotThresh = [1500, 1700, 1900, 2000];
+  const sCrossed = new Set(), bCrossed = new Set();
+  let hiScore = 0, hiScoreDat = null, hiBlowout = 0, hiBlowoutDat = null;
   const sortedM = [...MATCHUPS].filter(m => m.p.length===2 && m.p[0].pts>0 && m.p[1].pts>0)
     .sort((a,b) => a.s.localeCompare(b.s)||a.w-b.w);
-  let hiScore = 0, hiBlowout = 0;
   for (const m of sortedM) {
     const ts = tlTs(m.s, m.w);
     for (const side of m.p) {
-      if (side.pts > hiScore) {
-        hiScore = side.pts;
-        evs.push({type:"record", season:m.s, week:m.w, ts, full:false,
-          data:{recordType:"hi_score", pts:side.pts, oid:ownerOf(m.s, side.rid), s:m.s, w:m.w}});
+      if (side.pts > hiScore) { hiScore = side.pts; hiScoreDat = {pts:side.pts, oid:ownerOf(m.s,side.rid), s:m.s, w:m.w, ts}; }
+      for (const th of scoreThresh) {
+        if (side.pts >= th && !sCrossed.has(th)) {
+          sCrossed.add(th);
+          evs.push({type:"record", season:m.s, week:m.w, ts, full:false,
+            data:{recordType:"hi_score", pts:side.pts, oid:ownerOf(m.s,side.rid), s:m.s, w:m.w, label:`First ${th}+ point game in league history`}});
+        }
       }
     }
     const mg = Math.abs(m.p[0].pts - m.p[1].pts);
     if (mg > hiBlowout) {
-      hiBlowout = mg;
-      const winner = m.p[0].pts > m.p[1].pts ? m.p[0] : m.p[1], loser = m.p[0].pts < m.p[1].pts ? m.p[0] : m.p[1];
-      evs.push({type:"record", season:m.s, week:m.w, ts, full:false,
-        data:{recordType:"blowout", margin:mg, wOid:ownerOf(m.s,winner.rid), lOid:ownerOf(m.s,loser.rid), wPts:winner.pts, lPts:loser.pts, s:m.s, w:m.w}});
+      const win = m.p[0].pts > m.p[1].pts ? m.p[0] : m.p[1], los = m.p[0].pts < m.p[1].pts ? m.p[0] : m.p[1];
+      hiBlowout = mg; hiBlowoutDat = {margin:mg, wOid:ownerOf(m.s,win.rid), lOid:ownerOf(m.s,los.rid), wPts:win.pts, lPts:los.pts, s:m.s, w:m.w, ts};
+    }
+    for (const th of blowThresh) {
+      if (mg >= th && !bCrossed.has(th)) {
+        bCrossed.add(th);
+        const win = m.p[0].pts > m.p[1].pts ? m.p[0] : m.p[1], los = m.p[0].pts < m.p[1].pts ? m.p[0] : m.p[1];
+        evs.push({type:"record", season:m.s, week:m.w, ts, full:false,
+          data:{recordType:"blowout", margin:mg, wOid:ownerOf(m.s,win.rid), lOid:ownerOf(m.s,los.rid), wPts:win.pts, lPts:los.pts, s:m.s, w:m.w, label:`First ${th}+ point blowout in league history`}});
+      }
     }
   }
-  // RS total records (end of each regular season)
-  let hiRSTotal = 0;
+  // Always include the current all-time records if not already covered by a threshold event
+  const covered = (dat, type, field) => dat && evs.some(e => e.type==="record" && e.data?.recordType===type && e.data?.s===dat.s && e.data?.w===dat.w && e.data?.[field]===dat[field]);
+  if (hiScoreDat && !covered(hiScoreDat, "hi_score", "oid"))
+    evs.push({type:"record", season:hiScoreDat.s, week:hiScoreDat.w, ts:hiScoreDat.ts, full:false,
+      data:{recordType:"hi_score", pts:hiScoreDat.pts, oid:hiScoreDat.oid, s:hiScoreDat.s, w:hiScoreDat.w, label:"All-time high score"}});
+  if (hiBlowoutDat && !covered(hiBlowoutDat, "blowout", "wOid"))
+    evs.push({type:"record", season:hiBlowoutDat.s, week:hiBlowoutDat.w, ts:hiBlowoutDat.ts, full:false,
+      data:{...hiBlowoutDat, recordType:"blowout", label:"All-time record blowout"}});
+  // RS total thresholds + current record
+  const rsCrossed = new Set(); let hiRSTotal = 0, hiRSTotalDat = null;
   for (const s of seasons) {
     const pws = D.seasons?.[s]?.playoff_week_start || 15;
     const tot = {};
-    for (const m of MATCHUPS.filter(m => m.s===s && m.w<pws && m.p.length===2)) {
+    for (const m of MATCHUPS.filter(m => m.s===s && m.w<pws && m.p.length===2))
       for (const x of m.p) { const oid=ownerOf(s,x.rid); tot[oid]=(tot[oid]||0)+x.pts; }
-    }
     const lastW = Math.max(0,...MATCHUPS.filter(m=>m.s===s&&m.w<pws).map(m=>m.w));
     if (!lastW) continue;
     const ts = tlTs(s, lastW);
     for (const [oid, total] of Object.entries(tot)) {
-      if (total > hiRSTotal) {
-        hiRSTotal = total;
-        evs.push({type:"record", season:s, week:lastW, ts, full:false,
-          data:{recordType:"rs_total", total, oid, s, w:lastW}});
+      for (const th of rsTotThresh) {
+        if (total >= th && !rsCrossed.has(th)) {
+          rsCrossed.add(th);
+          evs.push({type:"record", season:s, week:lastW, ts, full:false,
+            data:{recordType:"rs_total", total, oid, s, w:lastW, label:`First ${th.toLocaleString()}+ point regular season`}});
+        }
       }
+      if (total > hiRSTotal) { hiRSTotal = total; hiRSTotalDat = {total, oid, s, w:lastW, ts}; }
     }
   }
+  if (hiRSTotalDat && !evs.some(e => e.type==="record" && e.data?.recordType==="rs_total" && e.data?.s===hiRSTotalDat.s && e.data?.oid===hiRSTotalDat.oid))
+    evs.push({type:"record", season:hiRSTotalDat.s, week:hiRSTotalDat.w, ts:hiRSTotalDat.ts, full:false,
+      data:{recordType:"rs_total", total:hiRSTotalDat.total, oid:hiRSTotalDat.oid, s:hiRSTotalDat.s, w:hiRSTotalDat.w, label:"All-time regular season total"}});
   // 5 · Top trades per season
   const tradeBySeason = {};
   for (const t of D.transactions.filter(t => t.type==="trade")) {
@@ -972,7 +1010,7 @@ function buildTimeline() {
   }
   for (const [, trades] of Object.entries(tradeBySeason)) {
     for (const t of trades.sort((a,b)=>b.sc-a.sc).slice(0,3))
-      evs.push({type:"trade", season:t.season, week:t.week, ts:t.created, full:false, data:{t}});
+      evs.push({type:"trade", season:t.season, week:t.week, ts:t.created, full:true, data:{t}});
   }
   // 6 · Top matchups per season + championship
   for (const s of seasons) {
@@ -1013,18 +1051,18 @@ function tlCard(ev, idx) {
     inner=`<div class="tl-card tl-champ-card"><div class="tl-champ-trophy">🏆</div><div class="tl-champ-title">${esc(ev.season)} Champion</div><div class="tl-champ-team">${uav(d.champOid)}<span>${esc(username(d.champOid))}</span></div><div class="mut" style="font-size:.78rem;margin-top:5px">${esc(d.record)} reg. season${d.ruOid?` \u00b7 Runner-up: ${esc(username(d.ruOid))}`:""}${!d.champOid?" \u2014 update crawl.py for champion data":""}</div></div>`;
   } else if (ev.type==="record") {
     if (d.recordType==="hi_score") {
-      inner=`<div class="tl-card tl-rec-card"><div class="tl-ev-type">⚡ All-Time Record</div><div class="tl-rec-stat">${pts1(d.pts)} pts</div><div class="tl-rec-label">New single-game high score</div><div class="tl-rec-who">${uav(d.oid)}<span>${esc(username(d.oid))}</span><span class="mut">\u00b7 ${d.s} Wk ${d.w}</span></div></div>`;
+      inner=`<div class="tl-card tl-rec-card"><div class="tl-ev-type">⚡ All-Time Record</div><div class="tl-rec-stat">${pts1(d.pts)} pts</div><div class="tl-rec-label">${esc(d.label||"Single-game high score")}</div><div class="tl-rec-who">${uav(d.oid)}<span>${esc(username(d.oid))}</span><span class="mut">\u00b7 ${d.s} Wk ${d.w}</span></div></div>`;
     } else if (d.recordType==="blowout") {
-      inner=`<div class="tl-card tl-rec-card"><div class="tl-ev-type">⚡ All-Time Record</div><div class="tl-rec-stat">+${d.margin.toFixed(1)} pts</div><div class="tl-rec-label">New biggest blowout</div><div class="tl-rec-who">${uav(d.wOid)}<span>${esc(username(d.wOid))}</span><span class="mut">${pts1(d.wPts)}\u2013${pts1(d.lPts)} \u00b7 ${d.s} Wk ${d.w}</span></div></div>`;
+      inner=`<div class="tl-card tl-rec-card"><div class="tl-ev-type">⚡ All-Time Record</div><div class="tl-rec-stat">+${d.margin.toFixed(1)} pts</div><div class="tl-rec-label">${esc(d.label||"Biggest blowout")}</div><div class="tl-rec-who">${uav(d.wOid)}<span>${esc(username(d.wOid))}</span><span class="mut">${pts1(d.wPts)}\u2013${pts1(d.lPts)} \u00b7 ${d.s} Wk ${d.w}</span></div></div>`;
     } else {
-      inner=`<div class="tl-card tl-rec-card"><div class="tl-ev-type">⚡ All-Time Record</div><div class="tl-rec-stat">${pts1(d.total)} pts</div><div class="tl-rec-label">New regular season total record</div><div class="tl-rec-who">${uav(d.oid)}<span>${esc(username(d.oid))}</span><span class="mut">\u00b7 ${d.s}</span></div></div>`;
+      inner=`<div class="tl-card tl-rec-card"><div class="tl-ev-type">⚡ All-Time Record</div><div class="tl-rec-stat">${pts1(d.total)} pts</div><div class="tl-rec-label">${esc(d.label||"Regular season total")}</div><div class="tl-rec-who">${uav(d.oid)}<span>${esc(username(d.oid))}</span><span class="mut">\u00b7 ${d.s}</span></div></div>`;
     }
   } else if (ev.type==="trade") {
     const t = d.t, rids = tradeParties(t);
     if (rids.length<2) return "";
     const [ridA,ridB] = rids, oA=ownerOf(t.season,ridA), oB=ownerOf(t.season,ridB);
     const aG=sideAssets(t,ridA), bG=sideAssets(t,ridB);
-    inner=`<div class="tl-card"><div class="tl-ev-type">🔄 Trade \u00b7 ${t.season} Wk ${t.week}</div><div class="tl-trade-row"><div class="tl-trade-side"><div class="tl-trade-mgr">${esc(username(oA))}</div><div class="tl-trade-items">${fmtAssets(aG.pids,aG.picks)}</div></div><div class="tl-trade-div">\u21c4</div><div class="tl-trade-side tl-trade-side-r"><div class="tl-trade-mgr">${esc(username(oB))}</div><div class="tl-trade-items">${fmtAssets(bG.pids,bG.picks)}</div></div></div></div>`;
+    inner=`<div class="tl-card"><div class="tl-ev-type">🔄 Trade \u00b7 ${t.season} Wk ${t.week}</div><div style="font-size:.82rem;font-weight:600;color:var(--fg);margin-bottom:10px">${esc(tradeLabel(t))}</div><div class="tl-trade-row"><div class="tl-trade-side"><div class="tl-trade-mgr">${uav(oA)}<span>${esc(username(oA))}</span></div><div class="tl-trade-lbl mut">received</div><div class="tl-trade-items">${fmtAssets(aG.pids,aG.picks)}</div></div><div class="tl-trade-div">\u21c4</div><div class="tl-trade-side tl-trade-side-r"><div class="tl-trade-mgr">${uav(oB)}<span>${esc(username(oB))}</span></div><div class="tl-trade-lbl mut">received</div><div class="tl-trade-items">${fmtAssets(bG.pids,bG.picks)}</div></div></div></div>`;
   } else if (ev.type==="matchup") {
     const {game:g, label, isChamp} = d;
     const winner=g.p[0].pts>=g.p[1].pts?g.p[0]:g.p[1], loser=g.p[0].pts<g.p[1].pts?g.p[0]:g.p[1];
@@ -1039,8 +1077,13 @@ function renderTlEvents(filter) {
   let cardIdx = 0;
   return TL_EVENTS.map(ev => {
     if (filter!=="all" && ev.type!=="season") {
-      const map={draft:"drafts",trade:"trades",record:"records",matchup:"matchups",champion:"champions"};
-      if (map[ev.type]!==filter) return "";
+      const isChampGame = ev.type==="matchup" && ev.data?.isChamp;
+      if (filter==="matchups"  && isChampGame) return "";           // champ game → Champions only
+      if (filter==="champions" && isChampGame) { /* allow through */ }
+      else {
+        const map={draft:"drafts",trade:"trades",record:"records",matchup:"matchups",champion:"champions"};
+        if (map[ev.type]!==filter) return "";
+      }
     }
     const isCard = !ev.full;
     const idx = isCard ? cardIdx : 0;
