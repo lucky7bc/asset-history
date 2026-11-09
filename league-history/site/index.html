@@ -238,11 +238,44 @@ footer{margin-top:28px;font-size:.78rem;color:var(--mut)}
   .tl-full{padding-left:36px}
   .tl-full .tl-card{width:100%}
 }
+/* ─── Prophecy Board ──────────────────────────────────────── */
+.pb-identity-row{display:flex;align-items:center;gap:8px;margin-bottom:14px;font-size:.82rem}
+.pb-who-select{flex:1;padding:6px 10px;border-radius:8px;border:1px solid var(--bd);background:var(--tag);color:var(--fg);font-size:.82rem;cursor:pointer}
+.pb-state-banner{text-align:center;padding:14px 16px;background:var(--tag);border-radius:12px;margin-bottom:14px;font-size:.84rem;line-height:1.4}
+.pb-state-icon{font-size:1.5rem;display:block;margin-bottom:5px}
+.pb-matchups{display:flex;flex-direction:column;gap:10px}
+.pb-card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:14px}
+.pb-teams{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px}
+.pb-team{display:flex;flex-direction:column;align-items:center;gap:4px;min-width:0;flex:1}
+.pb-team-name{font-size:.78rem;font-weight:600;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;width:100%}
+.pb-vs{font-size:.8rem;font-weight:700;color:var(--mut);flex:none}
+.pb-input-row{display:flex;gap:8px;align-items:center;margin-top:8px}
+.pb-input{flex:1;padding:9px 12px;border-radius:9px;border:1px solid var(--bd);background:var(--tag);color:var(--fg);font-size:1.1rem;font-weight:700;text-align:center;min-width:0}
+.pb-input:focus{outline:none;border-color:var(--ac)}
+.pb-btn{padding:9px 18px;background:var(--ac);color:#fff;border:none;border-radius:9px;font-weight:700;cursor:pointer;font-size:.88rem;white-space:nowrap}
+.pb-btn:hover{opacity:.85}.pb-btn:disabled{opacity:.5;cursor:default}
+.pb-hint{font-size:.74rem;color:var(--mut);text-align:center;margin-top:5px}
+.pb-locked-pill{font-size:.74rem;padding:3px 10px;border-radius:99px;background:var(--tag);color:var(--mut)}
+.pb-confirmed{border-color:var(--lpos)!important}
+.pb-confirmed-label{font-size:.78rem;color:var(--lpos);font-weight:600;text-align:center;margin-top:6px}
+.pb-result-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;font-size:.82rem;border-top:1px solid var(--bd)}
+.pb-result-row:first-child{border-top:none}
+.pb-err-low{color:var(--lpos)}.pb-err-mid{color:#f59e0b}.pb-err-hi{color:var(--lneg)}
+.pb-prophet-banner{background:linear-gradient(135deg,var(--hit),var(--card));border:1px solid var(--bd);border-radius:12px;padding:14px;text-align:center;margin-bottom:14px}
+.pb-p-icon{font-size:1.8rem;display:block;margin-bottom:5px}
+.pb-lb-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--bd);font-size:.82rem}
+.pb-lb-rank{font-size:1rem;font-weight:800;min-width:22px;text-align:center;flex:none}
+.pb-lb-info{flex:1;min-width:0}
+.pb-lb-name{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pb-lb-meta{font-size:.73rem;color:var(--mut);margin-top:1px}
+.pb-lb-err{font-weight:700;font-size:.88rem;text-align:right;flex:none}
 /* ─── App header + theme toggle ───────────────────────────── */
 .app-header{display:flex;justify-content:flex-end;margin:4px 0 8px}
 #theme-btn{background:none;border:1px solid var(--bd);border-radius:8px;padding:5px 9px;cursor:pointer;color:var(--fg);font-size:1rem;line-height:1;flex:none;transition:background .15s}
 #theme-btn:hover{background:var(--tag)}
 </style>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 </head>
 <body>
 <main>
@@ -334,9 +367,10 @@ const NAV_ICONS = {
   luck:    `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`,
   rivalry: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>`,
   search:   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>`,
+  prophecy: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="10" r="7"/><path d="M8.5 7A4.5 4.5 0 0 1 14 5.5"/><path d="M9 21h6"/><path d="M12 17v4"/></svg>`,
   timeline: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="2" x2="12" y2="22"/><circle cx="12" cy="6" r="2" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="2" fill="currentColor" stroke="none"/><circle cx="12" cy="18" r="2" fill="currentColor" stroke="none"/><line x1="12" y1="6" x2="20" y2="6"/><line x1="12" y1="12" x2="20" y2="12"/><line x1="12" y1="18" x2="20" y2="18"/></svg>`,
 };
-let D, ITEMS = [], MATCHUPS = [], TL_EVENTS = [];
+let D, ITEMS = [], MATCHUPS = [], TL_EVENTS = [], PROPHET_OID = null;
 
 /* ---------- lookups ---------- */
 function teamObj(season, rid) {
@@ -356,7 +390,7 @@ const av = (src, name, sq) => `<span class="av${sq ? " sq" : ""}">${esc(ini(name
 const headshot = pid => av(`https://sleepercdn.com/content/nfl/players/thumb/${pid}.jpg`, pname(pid));
 const teamAv = (s, rid) => { const t = teamObj(s, rid); return av(t.avatar ? `https://sleepercdn.com/avatars/thumbs/${t.avatar}` : null, t.name); };
 
-const username = oid => D.users?.[oid]?.name || oid;
+const username = oid => (D.users?.[oid]?.name || oid || "?") + (PROPHET_OID && oid === PROPHET_OID ? " 🔮" : "");
 const teamUsername = (ss, rid) => { const t = teamObj(ss, rid); return t?.owner_id ? username(t.owner_id) : t?.name || "Team " + rid; };
 const uav = oid => av(D.users?.[oid]?.avatar ? `https://sleepercdn.com/avatars/thumbs/${D.users[oid].avatar}` : null, username(oid));
 function getOwners() {
@@ -1130,6 +1164,247 @@ function viewTimeline() {
     <div class="tl" id="tl-events">${renderTlEvents("all")}</div>`;
 }
 
+/* ---------- prophecy board ---------- */
+const FIREBASE_CFG = {
+  apiKey:"AIzaSyAWnk3BBeFfYTshGmae9dJYndfg_NWEOy0",authDomain:"big-boy-dynasty.firebaseapp.com",
+  projectId:"big-boy-dynasty",storageBucket:"big-boy-dynasty.firebasestorage.app",
+  messagingSenderId:"28234877468",appId:"1:28234877468:web:09636b619f090cfbe6add9"
+};
+let DB = null;
+function initFirebase() {
+  if (typeof firebase === "undefined") return false;
+  if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CFG);
+  DB = firebase.firestore();
+  return true;
+}
+function prophecyState() {
+  const {season, week} = D.current || {};
+  if (!season || !week) return "offseason";
+  const wm = MATCHUPS.filter(m => m.s===season && m.w===week && m.p.length===2);
+  if (!wm.length) return "open";
+  if (!wm.some(m => m.p.some(x => x.pts>0))) return "open";
+  return wm.every(m => m.p.every(x => x.pts>0)) ? "results" : "locked";
+}
+const pbIdentity = () => localStorage.getItem("pb-identity");
+const pbSetIdentity = oid => localStorage.setItem("pb-identity", oid);
+function managerSeasonAvg(oid, season) {
+  const pws = D.seasons?.[season]?.playoff_week_start || 15;
+  let tot = 0, n = 0;
+  for (const m of MATCHUPS.filter(m => m.s===season && m.w<pws && m.p.length===2)) {
+    const s = m.p.find(x => ownerOf(season,x.rid)===oid);
+    if (s?.pts > 0) { tot += s.pts; n++; }
+  }
+  return n > 2 ? Math.round(tot/n*10)/10 : null;
+}
+function findActualScore(oid, season, week) {
+  const w = parseInt(week);
+  for (const m of MATCHUPS) {
+    if (m.s!==String(season)||m.w!==w||m.p.length!==2) continue;
+    const s = m.p.find(x => ownerOf(String(season),x.rid)===oid);
+    if (s?.pts>0) return s.pts;
+  }
+  return null;
+}
+async function pbFetchSeason(season) {
+  if (!DB) return [];
+  try { const sn=await DB.collection("predictions").where("season","==",String(season)).get(); return sn.docs.map(d=>d.data()); }
+  catch(e) { console.error(e); return []; }
+}
+async function pbFetchAll() {
+  if (!DB) return [];
+  try { const sn=await DB.collection("predictions").get(); return sn.docs.map(d=>d.data()); }
+  catch(e) { console.error(e); return []; }
+}
+async function pbWrite(oid, teamName, predicted, season, week) {
+  await DB.collection("predictions").doc(`${season}-${week}-${oid}`).set(
+    {owner_id:oid,team_name:String(teamName),predicted:parseFloat(predicted),
+     season:String(season),week:parseInt(week),submitted:Date.now()});
+}
+function computeLeaderboard(predictions) {
+  const stats = {};
+  for (const p of predictions) {
+    const actual = findActualScore(p.owner_id, p.season, p.week);
+    if (actual===null) continue;
+    const err = Math.abs(p.predicted-actual);
+    if (!stats[p.owner_id]) stats[p.owner_id]={oid:p.owner_id,errs:[],total:0,count:0};
+    const s=stats[p.owner_id]; s.errs.push({err,week:p.week,season:p.season,predicted:p.predicted,actual}); s.total+=err; s.count++;
+  }
+  return Object.values(stats).map(s=>({...s,avg:s.total/s.count,
+    best:s.errs.reduce((m,e)=>e.err<m.err?e:m,{err:Infinity})})).sort((a,b)=>a.avg-b.avg);
+}
+function accuracyTier(avg) {
+  if (avg<5)  return {emoji:"🔮",label:"Oracle"};
+  if (avg<10) return {emoji:"🎯",label:"Sharp"};
+  if (avg<15) return {emoji:"📊",label:"Analyst"};
+  return             {emoji:"🎲",label:"Guessing"};
+}
+async function loadProphetBadge() {
+  if (!initFirebase()) return;
+  try { const lb=computeLeaderboard(await pbFetchAll()).filter(s=>s.count>=3); PROPHET_OID=lb[0]?.oid||null; }
+  catch {}
+}
+function pbIdentityPicker(curOid, season) {
+  const seen=new Set();
+  const opts=Object.entries(D.teams[season]||{})
+    .map(([,t])=>t.owner_id?[t.owner_id,t.name]:null).filter(Boolean)
+    .filter(([oid])=>seen.has(oid)?false:seen.add(oid));
+  return `<div class="pb-identity-row"><span class="mut">You are:</span>
+    <select class="pb-who-select" id="pb-who" onchange="pbPickWho(this.value)">
+      <option value="">— pick your team —</option>
+      ${opts.map(([oid,name])=>`<option value="${esc(oid)}"${oid===curOid?" selected":""}>${esc(name)}</option>`).join("")}
+    </select></div>`;
+}
+function pbPickWho(oid) { pbSetIdentity(oid); viewProphecy(""); }
+async function pbHandleSubmit(btn) {
+  const {oid,team,season,week} = btn.dataset;
+  const input = document.getElementById("pb-score-input");
+  if (!input) return;
+  const val = parseFloat(input.value);
+  if (isNaN(val)||val<50||val>300) { input.style.borderColor="var(--lneg)"; return; }
+  btn.textContent="Saving…"; btn.disabled=true;
+  try { await pbWrite(oid,team,val,season,parseInt(week)); await viewProphecy(""); }
+  catch(e) { console.error(e); btn.textContent="Error — retry"; btn.disabled=false; }
+}
+function renderPbOpen(season, week, preds, oid, matchups, header) {
+  const myPred = preds.find(p=>p.owner_id===oid);
+  const avg = oid ? managerSeasonAvg(oid,season) : null;
+  const totalMgrs = new Set(Object.values(D.teams[season]||{}).map(t=>t.owner_id).filter(Boolean)).size;
+  const cards = matchups.map(m => {
+    const [a,b]=m.p, oA=ownerOf(season,a.rid), oB=ownerOf(season,b.rid);
+    const isMyGame = oid&&(oA===oid||oB===oid);
+    if (!isMyGame) return `<div class="pb-card">
+      <div class="pb-teams">
+        <div class="pb-team">${uav(oA)}<span class="pb-team-name">${esc(username(oA))}</span></div>
+        <span class="pb-vs">vs</span>
+        <div class="pb-team">${uav(oB)}<span class="pb-team-name">${esc(username(oB))}</span></div>
+      </div></div>`;
+    const rid=Object.entries(D.teams[season]||{}).find(([,t])=>t.owner_id===oid)?.[0];
+    const rawTeam=D.teams[season]?.[rid]?.name||D.users?.[oid]?.name||oid;
+    const oppOid=oA===oid?oB:oA;
+    return `<div class="pb-card${myPred?" pb-confirmed":""}">
+      <div class="pb-teams">
+        <div class="pb-team">${uav(oid)}<span class="pb-team-name" style="font-weight:700">${esc(username(oid))}</span></div>
+        <span class="pb-vs">vs</span>
+        <div class="pb-team">${uav(oppOid)}<span class="pb-team-name">${esc(username(oppOid))}</span></div>
+      </div>
+      ${myPred?`<div class="pb-confirmed-label">🔮 Locked in — ${pts1(myPred.predicted)} pts</div>
+        <div class="pb-hint">Change your mind? Enter below before first scores are in.</div>`:""}
+      <div class="pb-input-row">
+        <input class="pb-input" id="pb-score-input" type="number" step="0.1" min="50" max="300"
+          placeholder="${avg||"0.0"}" value="${myPred?myPred.predicted:""}">
+        <button class="pb-btn" data-oid="${esc(oid)}" data-team="${esc(rawTeam)}"
+          data-season="${season}" data-week="${week}" onclick="pbHandleSubmit(this)">
+          ${myPred?"Update":"Lock In 🔮"}
+        </button>
+      </div>
+      ${avg?`<div class="pb-hint">Your ${season} avg: ${pts1(avg)} pts</div>`:""}
+    </div>`;
+  }).join("");
+  $("#app").innerHTML=`${header}
+    <div class="pb-state-banner"><span class="pb-state-icon">🔮</span>
+      Predictions open · ${preds.length} of ${totalMgrs} managers have called their shot
+    </div>
+    <div class="pb-matchups">${cards}</div>
+    <div style="margin-top:16px;text-align:center"><a href="#prophecy/board" style="font-size:.82rem;color:var(--ac)">View leaderboard →</a></div>`;
+}
+function renderPbLocked(season, week, preds, matchups, header) {
+  const cards = matchups.map(m => {
+    const [a,b]=m.p,oA=ownerOf(season,a.rid),oB=ownerOf(season,b.rid);
+    return `<div class="pb-card">
+      <div class="pb-teams">
+        <div class="pb-team">${uav(oA)}<span class="pb-team-name">${esc(username(oA))}</span></div>
+        <span class="pb-vs">vs</span>
+        <div class="pb-team">${uav(oB)}<span class="pb-team-name">${esc(username(oB))}</span></div>
+      </div>
+      <div style="text-align:center;margin-top:6px"><span class="pb-locked-pill">🔒 Locked · results reveal when all scores are final</span></div>
+    </div>`;
+  }).join("");
+  $("#app").innerHTML=`${header}
+    <div class="pb-state-banner"><span class="pb-state-icon">⏳</span>
+      Week ${week} in progress · ${preds.length} prediction${preds.length!==1?"s":""} locked in
+    </div>
+    <div class="pb-matchups">${cards}</div>`;
+}
+function renderPbResults(season, week, preds, matchups, header) {
+  const scored=preds.map(p=>{const actual=findActualScore(p.owner_id,season,week);return actual===null?null:{...p,actual,err:Math.abs(p.predicted-actual)};}).filter(Boolean);
+  const prophet=scored.length?scored.reduce((m,x)=>x.err<m.err?x:m):null;
+  const eClass=e=>e<=5?"pb-err-low":e<=15?"pb-err-mid":"pb-err-hi";
+  const eLbl=e=>e<=5?"🟢":e<=15?"🟡":"🔴";
+  const propBanner=prophet?`<div class="pb-prophet-banner"><span class="pb-p-icon">🔮</span>
+    <span style="font-weight:700">Week ${week} Prophet: ${esc(username(prophet.owner_id))}</span><br>
+    <span class="mut" style="font-size:.8rem">Called ${pts1(prophet.predicted)} · actual ${pts1(prophet.actual)} · only ${pts1(prophet.err)} pts off</span>
+  </div>`:"";
+  const cards=matchups.map(m=>{
+    const rows=m.p.map(x=>{
+      const sOid=ownerOf(season,x.rid),sc=scored.find(p=>p.owner_id===sOid);
+      return `<div class="pb-result-row">
+        <div style="display:flex;align-items:center;gap:6px;min-width:0;flex:1">
+          ${uav(sOid)}<span style="font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(username(sOid))}</span>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center;flex:none">
+          <span class="mut" style="font-size:.78rem">Pred: <b>${sc?pts1(sc.predicted):"—"}</b></span>
+          <span style="font-weight:700">${x.pts>0?pts1(x.pts):"—"}</span>
+          ${sc?`<span class="${eClass(sc.err)}" style="font-size:.78rem">${eLbl(sc.err)} ${pts1(sc.err)}</span>`:""}
+        </div>
+      </div>`;
+    }).join("");
+    return `<div class="pb-card">${rows}</div>`;
+  }).join("");
+  $("#app").innerHTML=`${header}${propBanner}<div class="pb-matchups">${cards}</div>
+    <div style="margin-top:16px;text-align:center"><a href="#prophecy/board" style="font-size:.82rem;color:var(--ac)">Full leaderboard →</a></div>`;
+}
+async function viewProphecyBoard(isThisSeason=false) {
+  $("#app").innerHTML=`<h2>Prophecy Board</h2><div class="hint">Loading leaderboard…</div>`;
+  const all=await pbFetchAll(), cur=D.current||{};
+  const allLb=computeLeaderboard(all), allRanked=allLb.filter(s=>s.count>=3), allDim=allLb.filter(s=>s.count<3);
+  const seaLb=computeLeaderboard(all.filter(p=>p.season===cur.season));
+  PROPHET_OID=allRanked[0]?.oid||null;
+  function row(s,rank) {
+    const t=accuracyTier(s.avg);
+    return `<div class="pb-lb-row">${rank==="—"?`<div class="pb-lb-rank mut">—</div>`:`<div class="pb-lb-rank">${rank}</div>`}
+      ${uav(s.oid)}
+      <div class="pb-lb-info">
+        <div class="pb-lb-name">${esc(username(s.oid))}</div>
+        <div class="pb-lb-meta">${t.emoji} ${t.label} · ${s.count} pred${s.count!==1?"s":""} · Best ±${pts1(s.best.err)} (${s.best.season} Wk ${s.best.week})</div>
+      </div>
+      <div class="pb-lb-err">${pts1(s.avg)}<br><span class="mut" style="font-size:.7rem">avg err</span></div>
+    </div>`;
+  }
+  const allHtml=allRanked.length?allRanked.map((s,i)=>row(s,i+1)).join("")+
+    (allDim.length?`<div class="mut" style="font-size:.74rem;padding:8px 0 2px">Need 3+ predictions to rank:</div>`+allDim.map(s=>row(s,"—")).join(""):""):
+    `<p class="hint">No ranked predictions yet — submit at least 3 to appear.</p>`;
+  const seaHtml=seaLb.length?seaLb.map((s,i)=>row(s,i+1)).join(""):`<p class="hint">No predictions this season yet.</p>`;
+  $("#app").innerHTML=`<h2>Prophecy Board</h2>
+    <div class="sub">Prediction accuracy leaderboard</div>
+    <div class="chips" style="margin-bottom:12px">
+      <a class="chip${!isThisSeason?" on":""}" href="#prophecy/board">All-Time</a>
+      <a class="chip${isThisSeason?" on":""}" href="#prophecy/board/season">This Season</a>
+    </div>
+    <div class="card2">${isThisSeason?seaHtml:allHtml}</div>
+    <div style="margin-top:12px;text-align:center"><a href="#prophecy" style="font-size:.82rem;color:var(--ac)">← This week</a></div>`;
+}
+async function viewProphecy(path) {
+  path=path||"";
+  if (!initFirebase()) {
+    $("#app").innerHTML=`<h2>Prophecy Board</h2><p class="hint">Firebase SDK not available — check your connection and reload.</p>`;
+    return;
+  }
+  if (path.startsWith("board")) { await viewProphecyBoard(path==="board/season"); return; }
+  const state=prophecyState(), {season,week}=D.current||{};
+  if (state==="offseason") { await viewProphecyBoard(); return; }
+  $("#app").innerHTML=`<h2>Prophecy Board</h2><div class="hint" style="margin-top:8px">Loading…</div>`;
+  const [seasonPreds,allPreds]=await Promise.all([pbFetchSeason(season),pbFetchAll()]);
+  const weekPreds=seasonPreds.filter(p=>p.week===parseInt(week));
+  const lb=computeLeaderboard(allPreds).filter(s=>s.count>=3);
+  PROPHET_OID=lb[0]?.oid||null;
+  const matchups=MATCHUPS.filter(m=>m.s===season&&m.w===week&&m.p.length===2);
+  const oid=pbIdentity();
+  const header=`<h2>Prophecy Board</h2><div class="sub">Week ${week} · ${season}</div>${pbIdentityPicker(oid,season)}`;
+  if (state==="open")         renderPbOpen(season,week,weekPreds,oid,matchups,header);
+  else if (state==="locked")  renderPbLocked(season,week,weekPreds,matchups,header);
+  else                        renderPbResults(season,week,weekPreds,matchups,header);
+}
+
 /* ---------- dashboard ---------- */
 function viewDashboard() {
   const draftSeasons = [...new Set(Object.values(D.draft_results).map(d => d.season))].sort().reverse();
@@ -1152,8 +1427,14 @@ function viewDashboard() {
       teaser: luckRows[0] ? `${username(luckRows[0].oid)} leads (+${pts1(luckRows[0].luck)})` : "Expected vs actual wins" },
     { href: "#rivalry",  icon: "rivalry",  name: "Rivalry Engine",
       teaser: cur.week ? `Week ${cur.week} \u00b7 ${cur.season} matchups` : "Matchup rivalry breakdowns" },
-    { href: "#timeline", icon: "timeline", name: "Dynasty Timeline",
+    { href: "#timeline",  icon: "timeline",  name: "Dynasty Timeline",
       teaser: `${Object.keys(D.teams || {}).length} season${Object.keys(D.teams || {}).length !== 1 ? "s" : ""} of history` },
+    { href: "#prophecy", icon: "prophecy", name: "Prophecy Board",
+      teaser: (() => { const st = prophecyState(), w = cur.week;
+        return !w ? "Weekly score predictions"
+          : st === "open"    ? `Week ${w} \u00b7 submit your call`
+          : st === "results" ? `Week ${w} results are in`
+          : `Week ${w} \u00b7 scores coming in`; })() },
   ];
   const tilesHtml = tiles.map(t =>
     `<a class="dash-tile" href="${esc(t.href)}">
@@ -1173,7 +1454,8 @@ function renderNav(type) {
     ["h2h",     "H2H",     "h2h",     ["h2h"]],
     ["records", "Records", "records", ["records"]],
     ["luck",    "Luck",    "luck",    ["luck"]],
-    ["rivalry", "Rivalry", "rivalry", ["rivalry"]],
+    ["rivalry",  "Rivalry",  "rivalry",  ["rivalry"]],
+    ["prophecy", "Prophecy", "prophecy", ["prophecy"]],
   ];
   $("#nav").innerHTML     = items.map(([h, l,, ts]) => `<a class="chip${ts.includes(type) ? " on" : ""}" href="#${h}">${esc(l)}</a>`).join("");
   $("#tab-bar").innerHTML = items.map(([h, l, ic, ts]) => `<a class="${ts.includes(type) ? "on" : ""}" href="#${h}">${NAV_ICONS[ic]}<span>${esc(l)}</span></a>`).join("");
@@ -1209,8 +1491,9 @@ function route() {
   else if (type === "h2h") viewH2H(id);
   else if (type === "records") viewRecords();
   else if (type === "luck") viewLuck();
-  else if (type === "rivalry") viewRivalry();
+  else if (type === "rivalry")  viewRivalry();
   else if (type === "timeline") viewTimeline();
+  else if (type === "prophecy") viewProphecy(rest.join("/"));
   else if (type === "search") viewSearch();
   else viewDashboard();
   window.scrollTo(0, 0);
@@ -1267,6 +1550,7 @@ fetch("history.json")
     D = data; buildPoints(); buildMatchups(); buildItems();
     $("#foot").textContent = "Data updated " + fmt(Date.parse(D.generated));
     addEventListener("hashchange", route); route();
+    loadProphetBadge();
   })
   .catch(() => { $("#app").innerHTML = `<p class="hint">Couldn’t load history.json. Run crawl.py first, and serve this folder over http (not file://).</p>`; });
 </script>
