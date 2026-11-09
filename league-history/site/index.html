@@ -888,16 +888,21 @@ function fmtAssets(pids, picks) {
   if (extra > 0) parts.push(`+${extra} more`);
   return parts.join(", ") || "\u2014";
 }
-function tradeLabel(t) {
+function tradeLabel(t, topName) {
   const r1 = (t.picks||[]).filter(p => p.round === 1).length;
   const pCount = Object.keys(t.adds||{}).length;
   const pkCount = (t.picks||[]).length;
-  if (r1 >= 2) return `${r1} first-round picks exchanged`;
+  const n = topName ? esc(topName) : null;
+  if (n && r1 >= 2) return `${n} + ${r1} first-round pick${r1!==1?"s":""}`;
+  if (r1 >= 2)      return `${r1} first-round picks exchanged`;
+  if (n && r1 >= 1) return `${n} + a 1st-round pick`;
+  if (n && pCount >= 2) return `${n} headlines the deal`;
+  if (n)            return `${n} on the move`;
   if (r1 === 1 && pCount >= 2) return "Package deal \u00b7 1st-round pick included";
-  if (r1 === 1) return "1st-round pick included";
-  if (pCount >= 4) return `${pCount}-player blockbuster`;
+  if (r1 === 1)     return "1st-round pick included";
+  if (pCount >= 4)  return `${pCount}-player blockbuster`;
   if (pkCount >= 3) return `${pkCount}-pick package`;
-  return `${pCount} player${pCount !== 1 ? "s" : ""} \u00b7 ${pkCount} pick${pkCount !== 1 ? "s" : ""}`;
+  return `${pCount} player${pCount!==1?"s":""} \u00b7 ${pkCount} pick${pkCount!==1?"s":""}`;
 }
 function buildTimeline() {
   const evs = [];
@@ -998,19 +1003,34 @@ function buildTimeline() {
   if (hiRSTotalDat && !evs.some(e => e.type==="record" && e.data?.recordType==="rs_total" && e.data?.s===hiRSTotalDat.s && e.data?.oid===hiRSTotalDat.oid))
     evs.push({type:"record", season:hiRSTotalDat.s, week:hiRSTotalDat.w, ts:hiRSTotalDat.ts, full:false,
       data:{recordType:"rs_total", total:hiRSTotalDat.total, oid:hiRSTotalDat.oid, s:hiRSTotalDat.s, w:hiRSTotalDat.w, label:"All-time regular season total"}});
-  // 5 · Top trades per season
+  // Career pts cache — sums every player's points across all weeks/seasons
+  const ptsCache = {};
+  for (const weekData of Object.values(D.points)) {
+    for (const [pid, pts] of Object.entries(weekData)) {
+      ptsCache[pid] = (ptsCache[pid] || 0) + pts;
+    }
+  }
+  // 5 · Top trades per season — scored by player career pts + pick tier value
   const tradeBySeason = {};
   for (const t of D.transactions.filter(t => t.type==="trade")) {
-    const sc = (t.picks?.length||0)*2 + Object.keys(t.adds||{}).length
-      + (t.picks?.some(p=>p.round===1)?3:0)
-      + (t.picks?.some(p=>+(p.season||0)>=(+(D.current?.season||0)-1))?2:0);
-    if (!(t.picks?.length||Object.keys(t.adds||{}).length>=2)) continue;
-    if (!tradeBySeason[t.season]) tradeBySeason[t.season]=[];
-    tradeBySeason[t.season].push({...t, sc});
+    const playerScore = Object.keys(t.adds||{}).reduce((s, pid) => s + (ptsCache[pid]||0), 0);
+    const pickScore   = (t.picks||[]).reduce((s, p) =>
+      s + (p.round===1?400:p.round===2?200:p.round===3?100:50), 0);
+    const sc = playerScore + pickScore;
+    if (sc < 350) continue;  // skip low-value trades
+    // Find the most valuable player in the trade by career pts
+    let topPid = null, topPts = 0;
+    for (const pid of Object.keys(t.adds||{})) {
+      if ((ptsCache[pid]||0) > topPts) { topPts = ptsCache[pid]||0; topPid = pid; }
+    }
+    const topName = topPid ? (D.players[topPid]?.name || null) : null;
+    if (!tradeBySeason[t.season]) tradeBySeason[t.season] = [];
+    tradeBySeason[t.season].push({...t, sc, topName});
   }
   for (const [, trades] of Object.entries(tradeBySeason)) {
-    for (const t of trades.sort((a,b)=>b.sc-a.sc).slice(0,3))
-      evs.push({type:"trade", season:t.season, week:t.week, ts:t.created, full:true, data:{t}});
+    for (const t of [...trades].sort((a,b)=>b.sc-a.sc).slice(0,3))
+      evs.push({type:"trade", season:t.season, week:t.week, ts:t.created, full:true,
+        data:{t, topName:t.topName}});
   }
   // 6 · Top matchups per season + championship
   for (const s of seasons) {
@@ -1027,8 +1047,11 @@ function buildTimeline() {
           data:{game, label, isChamp:false}});
       }
     }
-    const champGame = MATCHUPS.filter(m=>m.s===s&&m.w>=pws&&m.p.length===2&&m.p.every(x=>x.pts>0))
-      .sort((a,b)=>b.w-a.w)[0];
+    const champRid  = D.champions?.[s]?.roster_id;
+    const champGame = MATCHUPS
+      .filter(m=>m.s===s&&m.w>=pws&&m.p.length===2&&m.p.every(x=>x.pts>0))
+      .sort((a,b)=>b.w-a.w)
+      .find(m=>!champRid||m.p.some(x=>String(x.rid)===String(champRid)));
     if (champGame)
       evs.push({type:"matchup", season:s, week:champGame.w, ts:tlTs(s,champGame.w), full:false,
         data:{game:champGame, label:"champ", isChamp:true}});
@@ -1062,7 +1085,7 @@ function tlCard(ev, idx) {
     if (rids.length<2) return "";
     const [ridA,ridB] = rids, oA=ownerOf(t.season,ridA), oB=ownerOf(t.season,ridB);
     const aG=sideAssets(t,ridA), bG=sideAssets(t,ridB);
-    inner=`<div class="tl-card"><div class="tl-ev-type">🔄 Trade \u00b7 ${t.season} Wk ${t.week}</div><div style="font-size:.82rem;font-weight:600;color:var(--fg);margin-bottom:10px">${esc(tradeLabel(t))}</div><div class="tl-trade-row"><div class="tl-trade-side"><div class="tl-trade-mgr">${uav(oA)}<span>${esc(username(oA))}</span></div><div class="tl-trade-lbl mut">received</div><div class="tl-trade-items">${fmtAssets(aG.pids,aG.picks)}</div></div><div class="tl-trade-div">\u21c4</div><div class="tl-trade-side tl-trade-side-r"><div class="tl-trade-mgr">${uav(oB)}<span>${esc(username(oB))}</span></div><div class="tl-trade-lbl mut">received</div><div class="tl-trade-items">${fmtAssets(bG.pids,bG.picks)}</div></div></div></div>`;
+    inner=`<div class="tl-card"><div class="tl-ev-type">🔄 Trade \u00b7 ${t.season} Wk ${t.week}</div><div style="font-size:.82rem;font-weight:600;color:var(--fg);margin-bottom:10px">${tradeLabel(t, d.topName)}</div><div class="tl-trade-row"><div class="tl-trade-side"><div class="tl-trade-mgr">${uav(oA)}<span>${esc(username(oA))}</span></div><div class="tl-trade-lbl mut">received</div><div class="tl-trade-items">${fmtAssets(aG.pids,aG.picks)}</div></div><div class="tl-trade-div">\u21c4</div><div class="tl-trade-side tl-trade-side-r"><div class="tl-trade-mgr">${uav(oB)}<span>${esc(username(oB))}</span></div><div class="tl-trade-lbl mut">received</div><div class="tl-trade-items">${fmtAssets(bG.pids,bG.picks)}</div></div></div></div>`;
   } else if (ev.type==="matchup") {
     const {game:g, label, isChamp} = d;
     const winner=g.p[0].pts>=g.p[1].pts?g.p[0]:g.p[1], loser=g.p[0].pts<g.p[1].pts?g.p[0]:g.p[1];
