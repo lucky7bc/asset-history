@@ -957,6 +957,42 @@ function tradeLabel(t, topName) {
   if (pkCount >= 3) return `${pkCount}-pick package`;
   return `${pCount} player${pCount!==1?"s":""} \u00b7 ${pkCount} pick${pkCount!==1?"s":""}`;
 }
+function champData(s) {
+  // Returns {game, winnerOid, loserOid, inferred?} for the championship of season s.
+  // Priority: 1) D.champions bracket data  2) undefeated-team heuristic  3) highest combined score
+  const pws = D.seasons?.[s]?.playoff_week_start || 15;
+  const pg = MATCHUPS.filter(m=>m.s===s&&m.w>=pws&&m.p.length===2&&m.p.every(x=>x.pts>0))
+    .sort((a,b)=>b.w-a.w);
+  if (!pg.length) return null;
+  const lastW = pg[0].w, finals = pg.filter(m=>m.w===lastW);
+  if (!finals.length) return null;
+  // 1 · Authoritative bracket data
+  const cr = D.champions?.[s]?.roster_id;
+  if (cr) {
+    const co = ownerOf(s, cr);
+    const game = finals.find(m=>m.p.some(x=>ownerOf(s,x.rid)===co));
+    if (game) {
+      const ru = D.champions[s].runner_up, loserP = game.p.find(x=>ownerOf(s,x.rid)!==co);
+      return {game, winnerOid:co, loserOid:ru ? ownerOf(s,ru) : ownerOf(s, loserP?.rid||"")};
+    }
+  }
+  // 2 · Teams undefeated through earlier playoff rounds = championship participants
+  const rec = {};
+  for (const m of pg.filter(m=>m.w<lastW)) {
+    for (const x of m.p) {
+      const oid=ownerOf(s,x.rid); if (!rec[oid]) rec[oid]={w:0,l:0};
+      const opp=m.p.find(y=>y!==x); if (x.pts>opp.pts) rec[oid].w++; else rec[oid].l++;
+    }
+  }
+  const undefeated = Object.entries(rec).filter(([,r])=>r.l===0).map(e=>e[0]);
+  const sfGame = undefeated.length>=2
+    ? finals.find(m=>undefeated.slice(0,2).every(t=>m.p.some(x=>ownerOf(s,x.rid)===t))) : null;
+  // 3 · Last resort: highest combined score in final week
+  const g = sfGame || [...finals].sort((a,b)=>(b.p[0].pts+b.p[1].pts)-(a.p[0].pts+a.p[1].pts))[0];
+  if (!g) return null;
+  const winner=g.p[0].pts>=g.p[1].pts?g.p[0]:g.p[1], loser=g.p[0].pts<g.p[1].pts?g.p[0]:g.p[1];
+  return {game:g, winnerOid:ownerOf(s,winner.rid), loserOid:ownerOf(s,loser.rid), inferred:true};
+}
 function buildTimeline() {
   const evs = [];
   const seasons = [...new Set([...Object.keys(D.teams || {}), ...Object.keys(D.champions || {})])].sort();
@@ -977,18 +1013,19 @@ function buildTimeline() {
     const r1 = picks.sort((a, b) => (a.pick_no||0)-(b.pick_no||0)).slice(0, 3);
     evs.push({type:"draft", season:s, ts, full:false, data:{picks:r1}});
   }
-  // 3 · Champions
-  for (const [s, champ] of Object.entries(D.champions || {})) {
-    if (!champ.roster_id) continue;
+  // 3 · Champions — uses bracket data when available, infers from matchups otherwise
+  for (const s of seasons) {
+    const cd = champData(s);
+    if (!cd?.winnerOid) continue;
     const pws = D.seasons?.[s]?.playoff_week_start || 15;
-    const champOid = ownerOf(s, champ.roster_id), ruOid = champ.runner_up ? ownerOf(s, champ.runner_up) : null;
     let cw = 0, cl = 0;
     for (const m of MATCHUPS.filter(m => m.s === s && m.w < pws && m.p.length === 2)) {
-      const side = m.p.find(x => ownerOf(s, x.rid) === champOid), opp = m.p.find(x => ownerOf(s, x.rid) !== champOid);
+      const side = m.p.find(x => ownerOf(s, x.rid) === cd.winnerOid);
+      const opp  = m.p.find(x => ownerOf(s, x.rid) !== cd.winnerOid);
       if (side && opp) { if (side.pts > opp.pts) cw++; else cl++; }
     }
     evs.push({type:"champion", season:s, ts:new Date(+s,11,25).getTime(), full:true,
-      data:{champOid, ruOid, record:`${cw}\u2013${cl}`}});
+      data:{champOid:cd.winnerOid, ruOid:cd.loserOid, record:`${cw}\u2013${cl}`}});
   }
   // 4 · Records — emit threshold milestones + always include the current all-time record
   const scoreThresh = [150, 175, 200, 225, 250];
@@ -1100,15 +1137,10 @@ function buildTimeline() {
           data:{game, label, isChamp:false}});
       }
     }
-    const champRid  = D.champions?.[s]?.roster_id;
-    const champOwner = champRid ? ownerOf(s, champRid) : null;
-    const champGame = champOwner ? MATCHUPS
-      .filter(m=>m.s===s&&m.w>=pws&&m.p.length===2&&m.p.every(x=>x.pts>0))
-      .sort((a,b)=>b.w-a.w)
-      .find(m=>m.p.some(x=>ownerOf(s,x.rid)===champOwner)) : null;
-    if (champGame)
-      evs.push({type:"matchup", season:s, week:champGame.w, ts:tlTs(s,champGame.w), full:false,
-        data:{game:champGame, label:"champ", isChamp:true}});
+    const cd = champData(s);
+    if (cd?.game)
+      evs.push({type:"matchup", season:s, week:cd.game.w, ts:tlTs(s,cd.game.w), full:false,
+        data:{game:cd.game, label:"champ", isChamp:true}});
   }
   return evs.sort((a,b)=>a.ts-b.ts);
 }
