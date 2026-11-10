@@ -269,6 +269,25 @@ footer{margin-top:28px;font-size:.78rem;color:var(--mut)}
 .pb-lb-name{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .pb-lb-meta{font-size:.73rem;color:var(--mut);margin-top:1px}
 .pb-lb-err{font-weight:700;font-size:.88rem;text-align:right;flex:none}
+/* ─── Mobile bug fixes ────────────────────────────────────── */
+/* Fix 2: prevent iOS auto-zoom on select (triggers on font-size < 16px) */
+@media(max-width:599px){.pb-who-select{font-size:16px}}
+/* Fix 3: rv-recent-row — winner name truncates gracefully, date stays visible */
+.rv-recent-row span:first-child{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-right:8px}
+/* Fix 4: timeline trade — stack sides vertically on mobile */
+@media(max-width:599px){
+  .tl-trade-row{flex-direction:column;gap:6px}
+  .tl-trade-side-r{text-align:left}
+  .tl-trade-div{display:none}
+}
+/* Fix 5: prophecy results — stack name and data on small screens */
+@media(max-width:420px){
+  .pb-result-row{flex-wrap:wrap;gap:4px}
+  .pb-result-row > div:first-child{width:100%}
+  .pb-result-row > div:last-child{width:100%;justify-content:flex-start;font-size:.76rem;gap:8px}
+}
+/* Fix 6: unm name truncation — widen from 72px to 90px at 480px breakpoint */
+@media(max-width:480px){.unm{max-width:90px}}
 /* ─── App header + theme toggle ───────────────────────────── */
 .app-header{display:flex;justify-content:flex-end;margin:4px 0 8px}
 #theme-btn{background:none;border:1px solid var(--bd);border-radius:8px;padding:5px 9px;cursor:pointer;color:var(--fg);font-size:1rem;line-height:1;flex:none;transition:background .15s}
@@ -1459,6 +1478,9 @@ function renderNav(type) {
   ];
   $("#nav").innerHTML     = items.map(([h, l,, ts]) => `<a class="chip${ts.includes(type) ? " on" : ""}" href="#${h}">${esc(l)}</a>`).join("");
   $("#tab-bar").innerHTML = items.map(([h, l, ic, ts]) => `<a class="${ts.includes(type) ? "on" : ""}" href="#${h}">${NAV_ICONS[ic]}<span>${esc(l)}</span></a>`).join("");
+  requestAnimationFrame(() => {
+    document.querySelector("#tab-bar a.on")?.scrollIntoView({behavior:"smooth",block:"nearest",inline:"center"});
+  });
 }
 
 function viewSearch(q = "") {
