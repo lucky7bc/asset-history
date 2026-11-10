@@ -1101,10 +1101,11 @@ function buildTimeline() {
       }
     }
     const champRid  = D.champions?.[s]?.roster_id;
-    const champGame = MATCHUPS
+    const champOwner = champRid ? ownerOf(s, champRid) : null;
+    const champGame = champOwner ? MATCHUPS
       .filter(m=>m.s===s&&m.w>=pws&&m.p.length===2&&m.p.every(x=>x.pts>0))
       .sort((a,b)=>b.w-a.w)
-      .find(m=>!champRid||m.p.some(x=>String(x.rid)===String(champRid)));
+      .find(m=>m.p.some(x=>ownerOf(s,x.rid)===champOwner)) : null;
     if (champGame)
       evs.push({type:"matchup", season:s, week:champGame.w, ts:tlTs(s,champGame.w), full:false,
         data:{game:champGame, label:"champ", isChamp:true}});
