@@ -1,0 +1,12 @@
+{
+  "appName": "League Asset History",
+  "features": { "tradeHub": true, "drafts": true, "h2h": true, "records": true, "luck": true },
+  "nicknames": {},
+  "tradeHub": {
+    "startSeason": null,
+    "excludeTrades": [],
+    "minTrades": 3,
+    "pickWeights": { "1": 1.0, "2": 0.5, "3": 0.3 },
+    "badges": {}
+  }
+}

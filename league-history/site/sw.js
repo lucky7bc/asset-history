@@ -1,5 +1,5 @@
 // Service worker: app shell works offline; data is fetched fresh when online.
-const VERSION = "v1";
+const VERSION = "v2";
 const SHELL = `shell-${VERSION}`, DATA = `data-${VERSION}`, IMG = `img-${VERSION}`;
 const SHELL_FILES = ["./", "index.html", "manifest.webmanifest", "icons/icon-192.png", "icons/icon-512.png", "icons/apple-touch-icon.png"];
 
@@ -38,7 +38,7 @@ self.addEventListener("fetch", e => {
   if (req.method !== "GET") return;
   const url = new URL(req.url);
   if (url.origin === location.origin) {
-    if (url.pathname.endsWith("history.json")) return e.respondWith(networkFirst(req, DATA));
+    if (url.pathname.endsWith("history.json") || url.pathname.endsWith("config.json")) return e.respondWith(networkFirst(req, DATA));
     if (req.mode === "navigate" || url.pathname.endsWith(".html")) return e.respondWith(networkFirst(req, SHELL));
     return e.respondWith(caches.match(req).then(hit => hit || networkFirst(req, SHELL)));
   }
