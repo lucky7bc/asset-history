@@ -46,6 +46,9 @@ def crawl_league(league_id, out):
             name = (u.get("metadata") or {}).get("team_name") or u.get("display_name") or f"Team {r['roster_id']}"
             teams[str(r["roster_id"])] = {"name": name, "owner_id": r.get("owner_id"), "avatar": u.get("avatar")}
         out["teams"][season] = teams
+        st = lg.get("settings") or {}
+        out["seasons"][season] = {"trade_deadline": int(st.get("trade_deadline") or 0),
+                                  "playoff_start": int(st.get("playoff_week_start") or 0)}
 
         for u in users.values():
             uid = u.get("user_id")
@@ -54,8 +57,7 @@ def crawl_league(league_id, out):
         # Newest league only: who owns every traded future pick right now
         if out["current"] is None:
             out["current"] = {"season": season, "league_id": league_id,
-                              "rounds": int((lg.get("settings") or {}).get("draft_rounds") or 4),
-                              "week": int((lg.get("settings") or {}).get("leg") or 0)}
+                              "rounds": int((lg.get("settings") or {}).get("draft_rounds") or 4)}
             for tp in get(f"/league/{league_id}/traded_picks") or []:
                 out["pick_owners"][f"{tp['season']}-{tp['round']}-{tp['roster_id']}"] = tp["owner_id"]
 
@@ -142,7 +144,8 @@ def attach_players(out):
     for pid in ids:
         p = everyone.get(pid) or {}
         name = p.get("full_name") or " ".join(filter(None, [p.get("first_name"), p.get("last_name")])) or pid
-        out["players"][pid] = {"name": name, "pos": p.get("position"), "team": p.get("team")}
+        out["players"][pid] = {"name": name, "pos": p.get("position"), "team": p.get("team"),
+                               "age": p.get("age"), "exp": p.get("years_exp")}
 
 
 def main():
@@ -153,7 +156,7 @@ def main():
 
     out = {"generated": datetime.now(timezone.utc).isoformat(), "teams": {},
            "transactions": [], "draft_results": {}, "players": {},
-           "points": {}, "pick_owners": {}, "current": None, "matchups": [], "users": {}}
+           "points": {}, "pick_owners": {}, "current": None, "matchups": [], "users": {}, "seasons": {}}
     crawl_league(league_id, out)
     attach_players(out)
     out["transactions"].sort(key=lambda t: t["created"])
