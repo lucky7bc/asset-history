@@ -160,9 +160,9 @@ footer{margin-top:28px;font-size:.78rem;color:var(--mut)}
 .mixbar{display:flex;height:10px;border-radius:5px;overflow:hidden;margin:6px 0 10px;background:var(--tag)}.mixbar i{display:block;height:10px}
 .lt{display:block;padding:10px 0;border-top:1px solid var(--bd);color:var(--fg);font-size:.78rem;font-weight:500}
 .lth{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:3px}
-.badge{display:inline-block;padding:3px 10px;border-radius:99px;font-size:.72rem;font-weight:700}
-.badge.pri{background:linear-gradient(135deg,#c9941a,#f0c040);color:#05091d}
-.badge.btag{background:var(--tag);border:1px solid var(--bd);color:var(--fg)}
+.tbadge{display:inline-block;padding:3px 10px;border-radius:99px;font-size:.72rem;font-weight:700;position:static;margin:0;width:auto;height:auto;line-height:1.4;white-space:nowrap}
+.tbadge.pri{background:linear-gradient(135deg,#c9941a,#f0c040);color:#05091d}
+.tbadge.btag{background:var(--tag);border:1px solid var(--bd);color:var(--fg)}
 .mxw{overflow-x:auto}
 .mx{display:grid;grid-template-columns:28px repeat(var(--n),minmax(26px,1fr));gap:4px;min-width:calc(28px + var(--n) * 30px)}
 .mh{text-align:center;font-size:.62rem;font-weight:700;color:var(--mut);display:flex;align-items:center;justify-content:center}
@@ -318,7 +318,7 @@ function tradeRow(t, from, to, isTracked) {
     ${(rc[rid] || []).map(a => assetHtml(a, isTracked(a))).join("") || `<div class="none">${empty}</div>`}</div>`;
   const n = Object.keys(rc).length;
   return `<div class="c"><a class="pill" href="#trade/${esc(t.id)}">${esc(fmt(t.created))} · points ›</a></div>
-    <div class="row">${col(from, "Sent it for", "Nothing back")}${col(to, "Acquired", "")}<span class="badge" aria-hidden="true">${ARROW}</span></div>
+    <div class="row">${col(from, "Sent It For", "Nothing Back")}${col(to, "Acquired", "")}<span class="badge" aria-hidden="true">${ARROW}</span></div>
     ${n > 2 ? `<div class="sub c" style="margin-top:-8px">${n}-team trade: showing the two teams on this asset’s path</div>` : ""}`;
 }
 const pill = (txt, cls = "", href = "") => `<div class="c"><${href ? "a" : "span"} class="pill ${cls}"${href ? ` href="${esc(href)}"` : ""}>${esc(txt)}</${href ? "a" : "span"}></div><div class="gap"></div>`;
@@ -377,7 +377,7 @@ function chain(key, pid) {
   }
   return {html, holder, trades};
 }
-const nowPill = c => pill(c.holder ? "Now: " + c.holder : "Not on a roster", "now");
+const nowPill = c => pill(c.holder ? "Now: " + c.holder : "Not on a Roster", "now");
 
 function viewPlayer(pid) {
   const p = D.players[pid] || {name: pid}, c = chain(null, pid);
@@ -388,7 +388,7 @@ function viewPlayer(pid) {
 
 function viewPick(key) {
   const [s, r, o] = key.split("-"), c = chain(key, null), d = D.draft_results[key];
-  $("#app").innerHTML = `<a href="#">← Search</a><h2>${esc(s + " " + ord(+r) + "-round pick")}</h2>
+  $("#app").innerHTML = `<a href="#">← Search</a><h2>${esc(s + " " + ord(+r) + "-Round Pick")}</h2>
     <div class="sub">Originally ${esc(team(s, o))} · ${c.trades} trade${c.trades === 1 ? "" : "s"}${d ? " · became " + esc(pname(d.player_id)) : ""}</div>
     <div class="spine">${c.html}${nowPill(c)}</div>`;
 }
@@ -439,7 +439,7 @@ function viewTrade(id) {
        <div style="font-size:.85rem">${lead ? `<b>${esc(lead.name)}</b> lead by ${pts1(Math.abs(a.total - b.total))} pts` : "No points scored yet"}</div>`
     : sides.map(x => `<div style="display:flex;justify-content:space-between;padding:4px 0"><b>${esc(x.name)}</b><span>${pts1(x.total)} pts</span></div>`).join("");
   const cols = sides.map(x => `<div class="side"><div class="th">${teamAv(t.season, x.rid)}<div><div class="team">${esc(x.name)}</div><div class="lbl">Got</div></div></div>${x.items.join("") || `<div class="none">Nothing back</div>`}</div>`).join("");
-  $("#app").innerHTML = `<a href="#" onclick="history.back();return false">← Back</a><h2>Trade scorecard</h2>
+  $("#app").innerHTML = `<a href="#" onclick="history.back();return false">← Back</a><h2>Trade Scorecard</h2>
     <div class="sub">${esc(fmt(t.created))} · points scored since the trade</div>
     <div class="card2">${HAS ? top : `<span class="hint">Re-run crawl.py to load weekly points.</span>`}</div>
     <div class="grid2">${cols}</div>
@@ -468,7 +468,7 @@ function viewDraft(season) {
     html += `<div class="dr"><span class="no">${d.round}.${String(slot).padStart(2, "0")}</span>${headshot(d.player_id)}<a class="pln" href="#player/${esc(d.player_id)}"><span class="nm">${esc(pname(d.player_id))}<small>${esc(sub)}</small></span>${totPts != null ? `<span class="ppts">${pts1(totPts)} pts</span>` : ""}</a><span class="rt"><b class="ow" title="${esc(uname)}" onclick="event.stopPropagation();this.classList.toggle('exp')">${esc(uname)}</b>${viaName ? `<small style="color:var(--ac);display:block">via ${esc(viaName)}</small>` : ""}</span></div>`;
   }
   if (round) html += "</div>";
-  $("#app").innerHTML = `<h2>Draft board</h2><div class="sub">Every pick, who made it, and total points scored since${HAS ? "" : " (re-run crawl.py to load points)"}</div>
+  $("#app").innerHTML = `<h2>Draft Board</h2><div class="sub">Every Pick, Who Made It, and Total Points Scored Since${HAS ? "" : " (re-run crawl.py to load points)"}</div>
     <div class="chips">${seasons.map(x => `<a class="chip${x === season ? " on" : ""}" href="#draft/${x}">${x}</a>`).join("")}</div>${html}`;
 }
 
@@ -498,7 +498,7 @@ function viewH2H(path = "") {
     const last5 = r.games.slice(0, 5).map(g =>
       `<div class="mrow"><span class="mut">${g.s} Wk ${g.w}</span><span>${g.apts > g.bpts ? "✓" : "✗"} <b>${pts1(g.apts)}</b> – ${pts1(g.bpts)}</span></div>`).join("");
     $("#app").innerHTML = `<a href="#h2h">← H2H</a><h2>${esc(username(oa))} vs ${esc(username(ob))}</h2>
-      <div class="sub">All-time head-to-head record</div>
+      <div class="sub">All-Time Head-to-Head Record</div>
       <div class="card2">
         <div style="text-align:center;margin-bottom:8px">
           <div style="display:flex;justify-content:space-around;align-items:center;gap:8px">
@@ -509,16 +509,16 @@ function viewH2H(path = "") {
           <div style="color:var(--mut);font-size:.78rem;margin-top:6px">${tot} games &nbsp;·&nbsp; ${pts1(r.pfa)} – ${pts1(r.pfb)} pts</div>
         </div>${bar}
       </div>
-      ${last5 ? `<div class="card2"><div class="ttl">Last 5 matchups</div>${last5}</div>` : ""}
+      ${last5 ? `<div class="card2"><div class="ttl">Last 5 Matchups</div>${last5}</div>` : ""}
       ${!MATCHUPS.length ? `<p class="hint">Re-run crawl.py to load matchup data.</p>` : ""}`;
   } else if (parts.length === 1) {
     const oa = parts[0];
     $("#app").innerHTML = `<a href="#h2h">← H2H</a><div style="display:flex;gap:10px;align-items:center;margin:10px 0 14px">${uav(oa)}<h2 style="margin:0">${esc(username(oa))}</h2></div>
-      <div class="sub">Pick an opponent</div>
+      <div class="sub">Pick an Opponent</div>
       <div class="card2">${owners.filter(o => o !== oa).map(o =>
         `<a class="chip" style="margin:4px 2px;display:inline-flex;gap:6px;align-items:center" href="#h2h/${oa}/${o}">${uav(o)} ${esc(username(o))}</a>`).join("")}</div>`;
   } else {
-    $("#app").innerHTML = `<h2>Head to Head</h2><div class="sub">Pick a manager to start</div>
+    $("#app").innerHTML = `<h2>Head to Head</h2><div class="sub">Pick a Manager to Start</div>
       <div class="card2">${owners.map(o =>
         `<a class="chip" style="margin:4px 2px;display:inline-flex;gap:6px;align-items:center" href="#h2h/${o}">${uav(o)} ${esc(username(o))}</a>`).join("")}</div>`;
   }
@@ -567,14 +567,14 @@ function viewRecords() {
   const game = (g, lbl) => { if (!g) return "";
     const [a, b] = g.p, w = a.pts >= b.pts ? a : b, l = a.pts < b.pts ? a : b;
     return rec(lbl, `${pts1(w.pts)} – ${pts1(l.pts)}`, `${username(ownerOf(g.s, w.rid))} beat ${username(ownerOf(g.s, l.rid))} · ${g.s} Wk ${g.w}`); };
-  $("#app").innerHTML = `<h2>League Records</h2><div class="sub">All-time milestones across every season</div>
+  $("#app").innerHTML = `<h2>League Records</h2><div class="sub">All-Time Milestones Across Every Season</div>
     <div class="card2">
-      ${r.hi ? rec(pts1(r.hi.pts), "Highest score ever", `${username(ownerOf(r.hi.s, r.hi.rid))} · ${r.hi.s} Wk ${r.hi.w}`) : ""}
-      ${r.lo ? rec(pts1(r.lo.pts), "Lowest score ever", `${username(ownerOf(r.lo.s, r.lo.rid))} · ${r.lo.s} Wk ${r.lo.w}`) : ""}
-      ${game(r.bl, "Biggest blowout")}
-      ${game(r.cl, "Closest game")}
-      ${r.win ? rec(r.win.mw + " W", "Longest win streak" + (r.win.winActive ? " (active)" : ""), r.win.name + rng(r.win.mwSt, r.win.mwEn, r.win.winActive)) : ""}
-      ${r.loss ? rec(r.loss.ml + " L", "Longest loss streak" + (r.loss.lossActive ? " (active)" : ""), r.loss.name + rng(r.loss.mlSt, r.loss.mlEn, r.loss.lossActive)) : ""}
+      ${r.hi ? rec(pts1(r.hi.pts), "Highest Score Ever", `${username(ownerOf(r.hi.s, r.hi.rid))} · ${r.hi.s} Wk ${r.hi.w}`) : ""}
+      ${r.lo ? rec(pts1(r.lo.pts), "Lowest Score Ever", `${username(ownerOf(r.lo.s, r.lo.rid))} · ${r.lo.s} Wk ${r.lo.w}`) : ""}
+      ${game(r.bl, "Biggest Blowout")}
+      ${game(r.cl, "Closest Game")}
+      ${r.win ? rec(r.win.mw + " W", "Longest Win Streak" + (r.win.winActive ? " (active)" : ""), r.win.name + rng(r.win.mwSt, r.win.mwEn, r.win.winActive)) : ""}
+      ${r.loss ? rec(r.loss.ml + " L", "Longest Loss Streak" + (r.loss.lossActive ? " (active)" : ""), r.loss.name + rng(r.loss.mlSt, r.loss.mlEn, r.loss.lossActive)) : ""}
     </div>`;
 }
 /* ---------- luck index ---------- */
@@ -824,9 +824,9 @@ function computeProfiles() {
 /* ---------- Trade Hub: views ---------- */
 const CHEV = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg>`;
 const bname = k => CFG.tradeHub.badges[k]?.name || k;
-const badgeHtml = (k, primary) => `<span class="badge ${primary ? "pri" : "btag"}">${esc(bname(k))}</span>`;
+const badgeHtml = (k, primary) => `<span class="tbadge ${primary ? "pri" : "btag"}">${esc(bname(k))}</span>`;
 const barRow = (label, v, max, txt, href) => `<${href ? "a" : "div"} class="hbr"${href ? ` href="${esc(href)}"` : ""}><span class="hbl">${esc(label)}</span><span class="hbt"><i style="width:${max ? (100 * v / max).toFixed(1) : 0}%"></i></span><b>${esc(String(txt ?? v))}</b></${href ? "a" : "div"}>`;
-const scopeTxt = () => CFG.tradeHub.startSeason ? "since " + CFG.tradeHub.startSeason : "all-time";
+const scopeTxt = () => CFG.tradeHub.startSeason ? "Since " + CFG.tradeHub.startSeason : "All-Time";
 const assetLabel = m => m.k === "pick" ? (([s, r, o]) => `${s} ${ord(+r)} · ${teamUsername(s, o)}`)(m.id.split("-")) : aName(m);
 
 function viewHub() {
@@ -850,7 +850,7 @@ function viewHub() {
   const busiest = new Date(2000, mon.indexOf(Math.max(...mon)), 1).toLocaleString(undefined, {month: "short"});
   const seasons = Object.keys(bySeason).sort(), maxS = Math.max(...Object.values(bySeason)), cur = D.current?.season;
   const mixTot = mix.p + mix.k + mix.b || 1;
-  const mixRows = [["Players only", mix.p, "var(--ac)"], ["Picks only", mix.k, "color-mix(in srgb,var(--ac) 40%,transparent)"], ["Players + picks", mix.b, "#f0c040"]];
+  const mixRows = [["Players Only", mix.p, "var(--ac)"], ["Picks Only", mix.k, "color-mix(in srgb,var(--ac) 40%,transparent)"], ["Players + Picks", mix.b, "#f0c040"]];
   const topO = HUB.owners.slice(0, 5), maxO = HUB.count[topO[0]];
   const topA = [...seen.values()].sort((a, b) => b.trades.size - a.trades.size).slice(0, 3), maxA = topA[0]?.trades.size || 1;
   const latest = [...T].sort((a, b) => b.time - a.time).slice(0, 2).map(x => {
@@ -860,19 +860,19 @@ function viewHub() {
       : `${x.parts.length}-team trade`;
     return `<a class="lt" href="#trade/${esc(x.id)}"><div class="lth"><b>${esc(names.join(" ⇄ "))}</b><span class="mut">${esc(fmt(x.time))}</span></div><div class="mut">${esc(body)}</div></a>`;
   }).join("");
-  $("#app").innerHTML = `<h2>Trade Hub</h2><div class="sub">${esc(scopeTxt()[0].toUpperCase() + scopeTxt().slice(1))} trading across every season</div>
-    <a class="go" href="#hub/matrix"><span><b>Trade matrix</b><small>See who trades with whom</small></span>${CHEV}</a>
-    <a class="go" href="#hub/profiles"><span><b>Manager profiles</b><small>Trade badges for every manager</small></span>${CHEV}</a>
-    <div class="hs"><div class="hst"><b>${T.length}</b><span>Trades</span></div><div class="hst"><b>${(assets / T.length).toFixed(1)}</b><span>Assets / trade</span></div><div class="hst"><b>${esc(busiest)}</b><span>Busiest month</span></div></div>
-    <div class="card2 hc"><div class="ttl">Trades by season</div>${seasons.map(s => barRow(s + (s === cur ? "*" : ""), bySeason[s], maxS)).join("")}${seasons.includes(cur) ? `<div class="hint" style="margin:8px 0 0">* current season</div>` : ""}</div>
-    <div class="card2 hc"><div class="ttl">What gets traded</div><div class="mixbar">${mixRows.map(([, v, c]) => `<i style="width:${100 * v / mixTot}%;background:${c}"></i>`).join("")}</div>${mixRows.map(([n, v, c]) => `<div class="hbr"><i class="dot" style="background:${c}"></i><span style="flex:1">${n}</span><b>${pct(v / mixTot)}%</b></div>`).join("")}</div>
-    <div class="card2 hc"><div class="ttl">Trades per manager</div>${topO.map(o => barRow(username(o), HUB.count[o], maxO, null, "#hub/profile/" + o)).join("")}</div>
-    <div class="card2 hc"><div class="ttl">Most-traded assets</div>${topA.map(e => barRow(assetLabel(e.m), e.trades.size, maxA, e.trades.size + "×", (e.m.k === "player" ? "#player/" : "#pick/") + e.m.id)).join("")}</div>
-    <div class="card2 hc"><div class="ttl">Latest trades</div>${latest}</div>`;
+  $("#app").innerHTML = `<h2>Trade Hub</h2><div class="sub">${esc(scopeTxt())} Trading Across Every Season</div>
+    <a class="go" href="#hub/matrix/all/trades"><span><b>Trade Matrix</b><small>See Who Trades with Whom</small></span>${CHEV}</a>
+    <a class="go" href="#hub/profiles"><span><b>Manager Profiles</b><small>Trade Badges for Every Manager</small></span>${CHEV}</a>
+    <div class="hs"><div class="hst"><b>${T.length}</b><span>Trades</span></div><div class="hst"><b>${(assets / T.length).toFixed(1)}</b><span>Assets / Trade</span></div><div class="hst"><b>${esc(busiest)}</b><span>Busiest Month</span></div></div>
+    <div class="card2 hc"><div class="ttl">Trades by Season</div>${seasons.map(s => barRow(s + (s === cur ? "*" : ""), bySeason[s], maxS)).join("")}${seasons.includes(cur) ? `<div class="hint" style="margin:8px 0 0">* Current Season</div>` : ""}</div>
+    <div class="card2 hc"><div class="ttl">What Gets Traded</div><div class="mixbar">${mixRows.map(([, v, c]) => `<i style="width:${100 * v / mixTot}%;background:${c}"></i>`).join("")}</div>${mixRows.map(([n, v, c]) => `<div class="hbr"><i class="dot" style="background:${c}"></i><span style="flex:1">${n}</span><b>${pct(v / mixTot)}%</b></div>`).join("")}</div>
+    <div class="card2 hc"><div class="ttl">Trades per Manager</div>${topO.map(o => barRow(username(o), HUB.count[o], maxO, null, "#hub/profile/" + o)).join("")}</div>
+    <div class="card2 hc"><div class="ttl">Most-Traded Assets</div>${topA.map(e => barRow(assetLabel(e.m), e.trades.size, maxA, e.trades.size + "×", (e.m.k === "player" ? "#player/" : "#pick/") + e.m.id)).join("")}</div>
+    <div class="card2 hc"><div class="ttl">Latest Trades</div>${latest}</div>`;
 }
 
 function viewMatrix(path = "") {
-  const [sea = "all", mode0 = "trades", a, b] = path.split("/"), mode = mode0 === "assets" ? "assets" : "trades";
+  const [sea0, mode0, a, b] = path.split("/"), sea = sea0 || "all", mode = mode0 === "assets" ? "assets" : "trades";
   const all = HUB.trades, trades = sea === "all" ? all : all.filter(x => x.season === sea);
   const owners = HUB.owners, ab = abbrMap(owners), pk = (x, y) => x < y ? x + "|" + y : y + "|" + x;
   const pair = {};
@@ -899,7 +899,7 @@ function viewMatrix(path = "") {
   grid += `</div>`;
   const seasons = [...new Set(all.map(x => x.season))].sort().reverse();
   const chips = ["all", ...seasons].map(s => `<a class="chip${s === sea ? " on" : ""}" href="#hub/matrix/${s}/${mode}${a && b ? `/${a}/${b}` : ""}">${s === "all" ? "All" : s}</a>`).join("");
-  const tog = [["trades", "Trades"], ["assets", "Assets moved"]].map(([m, l]) => `<a class="chip${m === mode ? " on" : ""}" href="#hub/matrix/${sea}/${m}${a && b ? `/${a}/${b}` : ""}">${l}</a>`).join("");
+  const tog = [["trades", "Trades"], ["assets", "Assets Moved"]].map(([m, l]) => `<a class="chip${m === mode ? " on" : ""}" href="#hub/matrix/${sea}/${m}${a && b ? `/${a}/${b}` : ""}">${l}</a>`).join("");
   let detail = `<p class="hint">Tap a cell to see the trades between two managers.</p>`;
   if (sel && a !== b) {
     const e = pair[sel] || {trades: 0, assets: 0, dir: {}}, list = trades.filter(x => x.parts.includes(a) && x.parts.includes(b)).sort((x, y) => y.time - x.time);
@@ -907,13 +907,13 @@ function viewMatrix(path = "") {
     const rows = list.map(x => {
       const l = x.moves.filter(m => m.from === a && m.to === b), r = x.moves.filter(m => m.from === b && m.to === a);
       const body = l.length + r.length ? `${nameList(l)} ⇄ ${nameList(r)}` : `${x.parts.length}-team trade`;
-      return `<a class="lt" href="#trade/${esc(x.id)}"><div class="lth"><b>${esc(fmt(x.time))}</b>${mode === "assets" ? `<span class="badge btag">${l.length + r.length} assets</span>` : ""}</div><div class="mut">${esc(body)}</div></a>`;
+      return `<a class="lt" href="#trade/${esc(x.id)}"><div class="lth"><b>${esc(fmt(x.time))}</b>${mode === "assets" ? `<span class="tbadge btag">${l.length + r.length} Assets</span>` : ""}</div><div class="mut">${esc(body)}</div></a>`;
     }).join("");
-    detail = `<div class="ttl">${esc(username(a))} ⇄ ${esc(username(b))}<span class="mut" style="font-weight:500;float:right">${mode === "assets" ? e.assets + " assets · " : ""}${e.trades} trade${e.trades === 1 ? "" : "s"}</span></div>
+    detail = `<div class="ttl">${esc(username(a))} ⇄ ${esc(username(b))}<span class="mut" style="font-weight:500;float:right">${mode === "assets" ? e.assets + " Assets · " : ""}${e.trades} Trade${e.trades === 1 ? "" : "s"}</span></div>
       ${mode === "assets" ? `<div class="hbr" style="justify-content:space-between"><span><b>${esc(username(a))}</b> sent ${sA}</span><span><b>${esc(username(b))}</b> sent ${sB}</span></div><div class="mixbar" style="margin-top:6px"><i style="width:${100 * sA / tot}%;background:var(--ac)"></i></div>` : ""}
       ${rows || `<p class="hint">No trades between these two${sea === "all" ? "" : " in " + sea}.</p>`}`;
   }
-  $("#app").innerHTML = `<a href="#hub">← Trade Hub</a><h2>Trade partners</h2><div class="sub">${mode === "assets" ? "Assets moved between managers" : "Who trades with whom"}, ${sea === "all" ? scopeTxt() : sea}</div>
+  $("#app").innerHTML = `<a href="#hub">← Trade Hub</a><h2>Trade Partners</h2><div class="sub">${mode === "assets" ? "Assets Moved Between Managers" : "Who Trades with Whom"}, ${sea === "all" ? scopeTxt() : sea}</div>
     <div class="chips">${chips}</div>
     <div class="card2"><div class="tg">${tog}</div><div class="mxw">${grid}</div>
       ${mode === "assets" ? `<div class="hint" style="margin:8px 0 0">Each cell counts every player, pick and FAAB transfer.</div>` : ""}
@@ -935,12 +935,12 @@ function abbrMap(owners) {
 function viewProfiles() {
   const rows = HUB.owners.map(o => {
     const P = PROFILES.byOwner[o], s = P.s;
-    const bs = P.status === "ok" ? P.badges.map((b, i) => badgeHtml(b.key, i === 0)).join(" ") : `<span class="mut" style="font-size:.75rem">Not enough trades yet</span>`;
-    return `<a class="prow" href="#hub/profile/${esc(o)}">${uav(o)}<span style="flex:1;min-width:0"><b>${esc(username(o))}</b><div class="mut" style="font-size:.75rem;margin:2px 0 6px">${s.n} trade${s.n === 1 ? "" : "s"}</div>${bs}</span>${CHEV}</a>`;
+    const bs = P.status === "ok" ? P.badges.map((b, i) => badgeHtml(b.key, i === 0)).join(" ") : `<span class="mut" style="font-size:.75rem">Not Enough Trades Yet</span>`;
+    return `<a class="prow" href="#hub/profile/${esc(o)}">${uav(o)}<span style="flex:1;min-width:0"><b>${esc(username(o))}</b><div class="mut" style="font-size:.75rem;margin:2px 0 6px">${s.n} Trade${s.n === 1 ? "" : "s"}</div>${bs}</span>${CHEV}</a>`;
   }).join("");
-  $("#app").innerHTML = `<a href="#hub">← Trade Hub</a><h2>Manager profiles</h2><div class="sub">Trade badges, ${esc(scopeTxt())}</div>
+  $("#app").innerHTML = `<a href="#hub">← Trade Hub</a><h2>Manager Profiles</h2><div class="sub">Trade Badges, ${esc(scopeTxt())}</div>
     <div class="card2" style="padding-top:4px;padding-bottom:4px">${rows || `<p class="hint">No trades found yet.</p>`}</div>
-    <a href="#hub/badges">How badges work ›</a>`;
+    <a href="#hub/badges">How Badges Work ›</a>`;
 }
 
 function viewProfile(o) {
@@ -949,26 +949,26 @@ function viewProfile(o) {
   const s = P.s, ok = P.status === "ok";
   const ten = P.sliders.map(t => `<div class="ten"><div class="tl"><span>${t.l}</span><span>${t.r}</span></div><div class="tk"><i style="left:${(t.p * 100).toFixed(0)}%"></i></div></div>`).join("");
   const ev = P.badges.map(b => `<div class="evl"><b>${esc(bname(b.key))}:</b> ${esc(b.ev)}</div>`).join("")
-    + (s.top != null ? `<div class="evl"><b>Favorite partner:</b> ${esc(username(s.top))}, ${s.topCount} trade${s.topCount === 1 ? "" : "s"}.</div>` : "");
-  $("#app").innerHTML = `<a href="#hub/profiles">← Profiles</a><h2>Trade profile</h2><div class="sub">Based on ${s.n} trade${s.n === 1 ? "" : "s"} · ${esc(scopeTxt())}</div>
+    + (s.top != null ? `<div class="evl"><b>Favorite Partner:</b> ${esc(username(s.top))}, ${s.topCount} trade${s.topCount === 1 ? "" : "s"}.</div>` : "");
+  $("#app").innerHTML = `<a href="#hub/profiles">← Profiles</a><h2>Trade Profile</h2><div class="sub">Based on ${s.n} Trade${s.n === 1 ? "" : "s"} · ${esc(scopeTxt())}</div>
     <div class="card2 pc"><div style="display:flex;justify-content:center">${av(D.users?.[o]?.avatar ? `https://sleepercdn.com/avatars/thumbs/${D.users[o].avatar}` : null, username(o)).replace('class="av"', 'class="av" style="width:56px;height:56px;font-size:18px"')}</div>
       <div style="font-weight:700;font-size:1.05rem;margin-top:10px">${esc(username(o))}</div>
-      <div style="margin-top:14px">${ok ? badgeHtml(P.badges[0].key, true) : `<span class="badge btag">Not enough trades yet</span>`}</div>
+      <div style="margin-top:14px">${ok ? badgeHtml(P.badges[0].key, true) : `<span class="tbadge btag">Not Enough Trades Yet</span>`}</div>
       ${ok && P.badges.length > 1 ? `<div class="tagrow">${P.badges.slice(1).map(b => badgeHtml(b.key, false)).join("")}</div>` : ""}</div>
     ${ok ? `<div class="card2 pt"><div class="ttl" style="margin:0">Tendencies</div>${ten}</div>
-    <div class="card2 pe"><div class="ttl">Why these badges</div>${ev}</div>` : `<div class="card2"><p class="hint" style="margin:0">Profiles unlock after ${CFG.tradeHub.minTrades} trades.${s.top != null ? ` Favorite partner so far: ${esc(username(s.top))}.` : ""}</p></div>`}
+    <div class="card2 pe"><div class="ttl">Why These Badges</div>${ev}</div>` : `<div class="card2"><p class="hint" style="margin:0">Profiles unlock after ${CFG.tradeHub.minTrades} trades.${s.top != null ? ` Favorite partner so far: ${esc(username(s.top))}.` : ""}</p></div>`}
     <a href="#hub/badges">How badges work ›</a>`;
 }
 
 function viewBadges() {
   const H = CFG.tradeHub, q = H.percentile >= 0.75 && H.percentile <= 0.75 ? "top quarter" : `top ${Math.round((1 - H.percentile) * 100)}%`;
   const rows = Object.entries(H.badges).filter(([, b]) => b.enabled !== false).map(([k, b], i) =>
-    `<div class="brow${i ? "" : " first"}"><span class="badge ${k === "balanced" ? "btag" : "pri"}">${esc(b.name)}</span><div class="mut">${esc(b.desc)}</div></div>`).join("");
-  $("#app").innerHTML = `<a href="#hub">← Trade Hub</a><h2>Badges</h2><div class="sub">What each manager's trading earns</div>
+    `<div class="brow${i ? "" : " first"}"><span class="tbadge ${k === "balanced" ? "btag" : "pri"}">${esc(b.name)}</span><div class="mut">${esc(b.desc)}</div></div>`).join("");
+  $("#app").innerHTML = `<a href="#hub">← Trade Hub</a><h2>Badges</h2><div class="sub">What Each Manager's Trading Earns</div>
     <div class="card2" style="padding-top:2px;padding-bottom:2px">${rows}</div>
     <div class="fine"><p>Finish in the ${q} of the league in a category to earn the badge.</p>
       <p>Each manager shows one main badge plus up to ${H.maxTags} more.</p>
-      <p>Under ${H.minTrades} trades: Not enough trades yet.</p>
+      <p>Under ${H.minTrades} Trades: Not Enough Trades Yet.</p>
       <p>Opposite badges never share a profile.</p>
       <p style="margin-top:14px">Wording is maintained by the league admin.</p></div>`;
 }
