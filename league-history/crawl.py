@@ -46,9 +46,6 @@ def crawl_league(league_id, out):
             name = (u.get("metadata") or {}).get("team_name") or u.get("display_name") or f"Team {r['roster_id']}"
             teams[str(r["roster_id"])] = {"name": name, "owner_id": r.get("owner_id"), "avatar": u.get("avatar")}
         out["teams"][season] = teams
-        st = lg.get("settings") or {}
-        out["seasons"][season] = {"trade_deadline": int(st.get("trade_deadline") or 0),
-                                  "playoff_start": int(st.get("playoff_week_start") or 0)}
 
         for u in users.values():
             uid = u.get("user_id")
@@ -57,9 +54,27 @@ def crawl_league(league_id, out):
         # Newest league only: who owns every traded future pick right now
         if out["current"] is None:
             out["current"] = {"season": season, "league_id": league_id,
-                              "rounds": int((lg.get("settings") or {}).get("draft_rounds") or 4)}
+                              "rounds": int((lg.get("settings") or {}).get("draft_rounds") or 4),
+                              "week": int((lg.get("settings") or {}).get("leg") or 0)}
             for tp in get(f"/league/{league_id}/traded_picks") or []:
                 out["pick_owners"][f"{tp['season']}-{tp['round']}-{tp['roster_id']}"] = tp["owner_id"]
+
+        # Season metadata and champions
+        st = lg.get("settings") or {}
+        out["seasons"][season] = {
+            "playoff_week_start": int(st.get("playoff_week_start") or 15),
+            "trade_deadline": int(st.get("trade_deadline") or 0),   # 0 = no deadline set
+        }
+        bracket = get(f"/league/{league_id}/winners_bracket") or []
+        if bracket:
+            try:
+                final = max((g for g in bracket if g.get("w")), key=lambda g: g.get("r", 0))
+                out["champions"][season] = {
+                    "roster_id": str(final["w"]),
+                    "runner_up": str(final.get("l") or "")
+                }
+            except ValueError:
+                pass  # bracket exists but no completed games yet
 
         # Every completed transaction (trades, waivers, free agents, commish moves)
         seen = set()
@@ -156,7 +171,8 @@ def main():
 
     out = {"generated": datetime.now(timezone.utc).isoformat(), "teams": {},
            "transactions": [], "draft_results": {}, "players": {},
-           "points": {}, "pick_owners": {}, "current": None, "matchups": [], "users": {}, "seasons": {}}
+           "points": {}, "pick_owners": {}, "current": None, "matchups": [], "users": {},
+           "champions": {}, "seasons": {}}
     crawl_league(league_id, out)
     attach_players(out)
     out["transactions"].sort(key=lambda t: t["created"])
