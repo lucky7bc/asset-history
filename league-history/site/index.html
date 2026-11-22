@@ -1509,7 +1509,7 @@ const DEFAULT_CFG = {
   features: {tradeHub: true, timeline: true, search: true, drafts: true, h2h: true, records: true, luck: true, rivalry: true, prophecy: true},
   nicknames: {},
   tradeHub: {
-    startSeason: null, excludeTrades: [], minTrades: 3, maxTags: 2, flipDays: 30, deadlineWeeks: 2,
+    startSeason: null, startupSeason: null, excludeTrades: [], minTrades: 3, maxTags: 2, flipDays: 30, deadlineWeeks: 2,
     pickWeights: {"1": 1.0, "2": 0.5, "3": 0.3},
     badges: {
       pick_hoarder:    {name: "Pick Hoarder",    desc: "Stockpiles draft picks, 1sts most of all", enabled: true, marks: [40, 55, 70, 85]},
@@ -1582,6 +1582,15 @@ function pctl(vals) {
 }
 const OPPOSITES = [["pick_hoarder", "all_in_buyer"], ["trade_machine", "lone_wolf"], ["rebuilder", "all_in_buyer"]];
 
+// Startup draft = earliest draft with more rounds than a normal rookie draft (or set tradeHub.startupSeason).
+function startupSeason() {
+  const c = CFG.tradeHub.startupSeason;
+  if (c) return String(c);
+  const rounds = D.current?.rounds || 4, mx = {};
+  for (const d of Object.values(D.draft_results)) mx[d.season] = Math.max(mx[d.season] || 0, d.round);
+  const yrs = Object.keys(mx).sort();
+  return yrs.length && mx[yrs[0]] > rounds ? yrs[0] : null;
+}
 function computeProfiles() {
   const H = CFG.tradeHub, B = H.badges, start = H.startSeason ? String(H.startSeason) : null;
   const minW = Math.min(...Object.values(H.pickWeights)), W = r => H.pickWeights[String(r)] ?? minW;
@@ -1594,6 +1603,7 @@ function computeProfiles() {
     (hist.get(key) || hist.set(key, []).get(key)).push({t: T.time, from: m.from, to: m.to});
   }
   const flipMs = (H.flipDays || 30) * 864e5;
+  const SU = startupSeason();   // startup-draft picks aren't rookie-pick decisions, so Draft Believer skips them
   for (const T of HUB.trades) {
     const dl = D.seasons?.[T.season]?.trade_deadline || 0;
     for (const o of T.parts) {
@@ -1623,6 +1633,7 @@ function computeProfiles() {
   }
   for (const d of Object.values(D.draft_results)) {
     if (start && d.season < start) continue;
+    if (SU && String(d.season) === SU) continue;
     const ow = ownerOf(d.league_season, d.by);
     if (S[ow]) S[ow].used++;
   }
@@ -1675,7 +1686,7 @@ function computeProfiles() {
     trade_buddies: {v: s => s.topShare * 100, u: "%", ok: s => s.topCount >= 3,
       ev: s => `${s.topCount} of ${s.n} trades were with ${username(s.top)}.`},
     draft_believer: {v: s => s.keep * 100, u: "%", ok: s => s.used >= 3,
-      ev: s => `Made ${s.used} picks in drafts and traded away ${s.kOut}.`},
+      ev: s => `Made ${s.used} picks in rookie drafts and traded away ${s.kOut}.`},
     deadline_dealer: {v: s => s.dlShare * 100, u: "%", ok: s => s.dlElig >= 3 && s.dl >= 2,
       ev: s => `${s.dl} of ${s.dlElig} trades landed in the ${dlw} weeks before the deadline.`}
   };
