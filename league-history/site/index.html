@@ -161,8 +161,17 @@ footer{margin-top:28px;font-size:.78rem;color:var(--mut)}
 .lt{display:block;padding:10px 0;border-top:1px solid var(--bd);color:var(--fg);font-size:.78rem;font-weight:500}
 .lth{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:3px}
 .tbadge{display:inline-block;padding:3px 10px;border-radius:99px;font-size:.72rem;font-weight:700;position:static;margin:0;width:auto;height:auto;line-height:1.4;white-space:nowrap}
-.tbadge.pri{background:linear-gradient(135deg,#c9941a,#f0c040);color:#05091d}
 .tbadge.btag{background:var(--tag);border:1px solid var(--bd);color:var(--fg)}
+.tbadge.big{font-size:.85rem;padding:7px 18px}
+.t-bronze{background:linear-gradient(135deg,#b06a2c,#e0a06a);color:#05091d}
+.t-silver{background:linear-gradient(135deg,#8f99b3,#dfe5f5);color:#05091d}
+.t-gold{background:linear-gradient(135deg,#c9941a,#f0c040);color:#05091d}
+.t-hof{background:linear-gradient(135deg,#5b3df5,#0e7fa8);color:#fff}
+.ttag{font-style:normal;font-size:.62rem;font-weight:800;padding:2px 9px;border-radius:99px}
+.evh{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px}
+.pg{height:8px;border-radius:4px;background:var(--tag);margin:10px 0 4px;overflow:hidden}.pg i{display:block;height:8px;border-radius:4px}
+.mks{display:flex;gap:6px}.mk{flex:1;text-align:center;padding:9px 2px;border-radius:8px}
+.mk small{display:block;font-size:.55rem;font-weight:700;letter-spacing:.02em;text-transform:uppercase}.mk b{display:block;font-size:.85rem;font-weight:800;margin-top:3px}
 .mxw{overflow-x:auto}
 .mx{display:grid;grid-template-columns:28px repeat(var(--n),minmax(26px,1fr));gap:4px;min-width:calc(28px + var(--n) * 30px)}
 .mh{text-align:center;font-size:.62rem;font-weight:700;color:var(--mut);display:flex;align-items:center;justify-content:center}
@@ -627,16 +636,16 @@ const DEFAULT_CFG = {
     startSeason: null, excludeTrades: [], minTrades: 3, percentile: 0.75, maxTags: 2, flipDays: 30, deadlineWeeks: 2,
     pickWeights: {"1": 1.0, "2": 0.5, "3": 0.3},
     badges: {
-      pick_hoarder:    {name: "Pick Hoarder",    desc: "Stockpiles draft picks, 1sts most of all", enabled: true},
-      all_in_buyer:    {name: "All-In Buyer",    desc: "Trades picks for players to win now", enabled: true},
-      rebuilder:       {name: "Rebuilder",       desc: "Sells veterans for picks and young talent", enabled: true},
-      consolidator:    {name: "Consolidator",    desc: "Packages depth to land one big piece", enabled: true},
-      trade_machine:   {name: "Trade Machine",   desc: "Makes frequent trades with a wide range of partners", enabled: true},
-      flipper:         {name: "Flipper",         desc: "Re-trades new acquisitions in a hurry", enabled: true},
-      lone_wolf:       {name: "Lone Wolf",       desc: "Rarely trades and keeps the core intact", enabled: true},
-      trade_buddies:   {name: "Trade Buddies",   desc: "Does most of their business with one partner", enabled: true},
-      draft_believer:  {name: "Draft Believer",  desc: "Holds onto picks and drafts with them", enabled: true},
-      deadline_dealer: {name: "Deadline Dealer", desc: "Makes moves in the weeks before the deadline", enabled: true},
+      pick_hoarder:    {name: "Pick Hoarder",    desc: "Stockpiles draft picks, 1sts most of all", enabled: true, marks: [40, 55, 70, 85]},
+      all_in_buyer:    {name: "All-In Buyer",    desc: "Trades picks for players to win now", enabled: true, marks: [1.5, 3, 5, 8]},
+      rebuilder:       {name: "Rebuilder",       desc: "Sells veterans for picks and young talent", enabled: true, marks: [1, 2, 3, 4]},
+      consolidator:    {name: "Consolidator",    desc: "Packages depth to land one big piece", enabled: true, marks: [0.5, 1, 1.5, 2]},
+      trade_machine:   {name: "Trade Machine",   desc: "Makes frequent trades with a wide range of partners", enabled: true, marks: [3, 5, 7, 10]},
+      flipper:         {name: "Flipper",         desc: "Re-trades new acquisitions in a hurry", enabled: true, marks: [10, 20, 30, 45]},
+      lone_wolf:       {name: "Lone Wolf",       desc: "Rarely trades and keeps the core intact", enabled: true, marks: [1.5, 1, 0.5, 0.3]},
+      trade_buddies:   {name: "Trade Buddies",   desc: "Does most of their business with one partner", enabled: true, marks: [40, 50, 60, 75]},
+      draft_believer:  {name: "Draft Believer",  desc: "Holds onto picks and drafts with them", enabled: true, marks: [50, 65, 80, 90]},
+      deadline_dealer: {name: "Deadline Dealer", desc: "Makes moves in the weeks before the deadline", enabled: true, marks: [30, 45, 60, 75]},
       balanced:        {name: "Balanced",        desc: "No tendency stands out"}
     }
   }
@@ -700,7 +709,6 @@ const OPPOSITES = [["pick_hoarder", "all_in_buyer"], ["trade_machine", "lone_wol
 function computeProfiles() {
   const H = CFG.tradeHub, B = H.badges, start = H.startSeason ? String(H.startSeason) : null;
   const minW = Math.min(...Object.values(H.pickWeights)), W = r => H.pickWeights[String(r)] ?? minW;
-  const wtxt = Object.entries(H.pickWeights).map(([r, w]) => `${ord(+r)} ${(+w).toFixed(1)}`).join(", ");
   const S = {}, st = o => S[o] ||= {o, n: 0, partners: new Map(), pIn: 0, pOut: 0, kIn: 0, kOut: 0, wIn: 0, wOut: 0,
     ageIn: [], ageOut: [], diff: [], inSeason: 0, dl: 0, dlElig: 0, noPick: 0, acq: 0, flips: 0, used: 0};
   const hist = new Map();
@@ -771,46 +779,59 @@ function computeProfiles() {
   mk("inSeason", s => s.inSeasonShare); mk("ageDelta", s => s.ageDelta); mk("consol", s => s.consol); mk("flip", s => s.flipShare);
   mk("topShare", s => s.topShare); mk("keep", s => s.keep); mk("noPick", s => s.noPickShare); mk("dl", s => s.dlShare); mk("ageIn", s => s.ageInAvg);
   const avgShare = Q.length ? avg(Q.map(s => s.share)) : 0, avgPer = Q.length ? avg(Q.map(s => s.perSeason)) : 0;
+  const dlw = H.deadlineWeeks || 2, fd = H.flipDays || 30;
+  // Each badge: the number measured, whether lower is better, a gate, and the evidence line.
   const E = {
-    pick_hoarder: s => s.net > 0 && {score: (PR.net(s.net) + PR.share(s.share)) / 2,
-      ev: `Picks were ${pct(s.share)}% of the value they acquired (league average ${pct(avgShare)}%), a net +${s.net.toFixed(1)} in pick value. Pick weights: ${wtxt}.`},
-    all_in_buyer: s => s.net < 0 && s.pIn > s.pOut && {score: (1 - PR.net(s.net) + PR.inSeason(s.inSeasonShare)) / 2,
-      ev: `Sent out ${s.kOut} picks and took in ${s.pIn} players, with ${pct(s.inSeasonShare)}% of their trades made in season.`},
-    rebuilder: s => s.ageDelta > 0 && s.net > 0 && {score: (PR.ageDelta(s.ageDelta) + PR.net(s.net)) / 2,
-      ev: `Sold players averaging ${s.ageOutAvg.toFixed(1)} years old, brought in ${s.ageInAvg.toFixed(1)}-year-olds, and gained +${s.net.toFixed(1)} in pick value.`},
-    consolidator: s => s.consol > 0.5 && {score: PR.consol(s.consol),
-      ev: `Sends ${s.consol.toFixed(1)} more pieces than they get back in the average trade.`},
-    trade_machine: s => ({score: (PR.per(s.perSeason) + PR.partners(s.partners.size)) / 2,
-      ev: `${s.n} trades with ${s.partners.size} different partners, ${s.perSeason.toFixed(1)} per season (league average ${avgPer.toFixed(1)}).`}),
-    flipper: s => s.flips >= 2 && {score: PR.flip(s.flipShare),
-      ev: `${s.flips} of ${s.acq} acquired assets were re-traded within ${H.flipDays || 30} days.`},
-    lone_wolf: s => ({score: 1 - PR.per(s.perSeason),
-      ev: `Only ${s.n} trade${s.n === 1 ? "" : "s"} over ${s.seasons} season${s.seasons === 1 ? "" : "s"}, ${s.perSeason.toFixed(1)} per season (league average ${avgPer.toFixed(1)}).`}),
-    trade_buddies: s => s.topCount >= 3 && s.topShare >= 0.4 && {score: PR.topShare(s.topShare),
-      ev: `${s.topCount} of ${s.n} trades were with ${username(s.top)}.`},
-    draft_believer: s => s.used >= 3 && {score: (PR.keep(s.keep) + PR.noPick(s.noPickShare)) / 2,
-      ev: `Made ${s.used} picks in drafts and traded away ${s.kOut}. ${pct(s.noPickShare)}% of their trades had no picks involved.`},
-    deadline_dealer: s => s.dlElig >= 3 && s.dl >= 2 && s.dlShare >= 0.3 && {score: PR.dl(s.dlShare),
-      ev: `${s.dl} of ${s.dlElig} trades landed in the ${H.deadlineWeeks || 2} weeks before the deadline.`}
+    pick_hoarder: {v: s => s.share * 100, u: "%", ok: s => s.net > 0,
+      ev: s => `Picks were ${pct(s.share)}% of the value they acquired. League average is ${pct(avgShare)}%.`},
+    all_in_buyer: {v: s => -s.net, u: "", ok: s => s.net < 0 && s.pIn > s.pOut,
+      ev: s => `Sent out ${s.kOut} picks and took in ${s.pIn} players, ${pct(s.inSeasonShare)}% of their trades in season.`},
+    rebuilder: {v: s => s.ageDelta, u: " yrs", ok: s => s.ageDelta > 0 && s.net > 0,
+      ev: s => `Sold players averaging ${s.ageOutAvg.toFixed(1)} years old and brought in ${s.ageInAvg.toFixed(1)}-year-olds.`},
+    consolidator: {v: s => s.consol, u: "", ok: s => s.consol > 0,
+      ev: s => `Sends ${s.consol.toFixed(1)} more pieces than they get back in the average trade.`},
+    trade_machine: {v: s => s.perSeason, u: " / season", ok: () => true,
+      ev: s => `${s.n} trades with ${s.partners.size} different partners, ${s.perSeason.toFixed(1)} per season. League average is ${avgPer.toFixed(1)}.`},
+    flipper: {v: s => s.flipShare * 100, u: "%", ok: s => s.flips >= 2,
+      ev: s => `${s.flips} of ${s.acq} acquired assets were re-traded within ${fd} days (${pct(s.flipShare)}%).`},
+    lone_wolf: {v: s => s.perSeason, u: " / season", low: true, ok: () => true,
+      ev: s => `Only ${s.n} trade${s.n === 1 ? "" : "s"} over ${s.seasons} season${s.seasons === 1 ? "" : "s"}, ${s.perSeason.toFixed(1)} per season.`},
+    trade_buddies: {v: s => s.topShare * 100, u: "%", ok: s => s.topCount >= 3,
+      ev: s => `${s.topCount} of ${s.n} trades were with ${username(s.top)}.`},
+    draft_believer: {v: s => s.keep * 100, u: "%", ok: s => s.used >= 3,
+      ev: s => `Made ${s.used} picks in drafts and traded away ${s.kOut}.`},
+    deadline_dealer: {v: s => s.dlShare * 100, u: "%", ok: s => s.dlElig >= 3 && s.dl >= 2,
+      ev: s => `${s.dl} of ${s.dlElig} trades landed in the ${dlw} weeks before the deadline.`}
   };
+  const TIERS = ["Bronze", "Silver", "Gold", "Hall of Fame"];
+  const fnum = (x, u) => (u === "%" ? Math.round(x) : Math.round(x * 10) / 10) + u;
+  // Highest tier whose mark is reached; progress is how far toward the next mark.
+  function grade(k, s) {
+    const e = E[k], m = B[k]?.marks;
+    if (!e || !m || B[k].enabled === false || !e.ok(s)) return null;
+    const v = e.v(s); if (v == null || !isFinite(v)) return null;
+    const hit = m.map(x => e.low ? v <= x : v >= x);
+    let tier = -1; hit.forEach((h, i) => { if (h) tier = i; });
+    const next = tier < 3 ? m[tier + 1] : null, base = tier >= 0 ? m[tier] : 0;
+    const prog = tier === 3 ? 1 : e.low ? (tier < 0 ? 0 : (base - v) / (base - next)) : (v - base) / (next - base);
+    return {key: k, tier, value: v, text: fnum(v, e.u), next, nextText: next != null ? fnum(next, e.u) : null,
+      nextName: TIERS[tier + 1], prog: Math.max(0, Math.min(1, prog)), overall: (tier + 1 + Math.max(0, Math.min(1, prog))) / 4, ev: e.ev(s)};
+  }
   const byOwner = {};
   for (const s of all) {
     const P = {s, status: s.n >= H.minTrades ? "ok" : "few", badges: [], sliders: []};
     byOwner[s.o] = P;
     if (P.status !== "ok") continue;
-    const cands = [];
-    for (const [k, f] of Object.entries(E)) {
-      if (B[k]?.enabled === false) continue;
-      const r = f(s);
-      if (r && r.score >= H.percentile) cands.push({key: k, score: r.score, ev: r.ev});
-    }
-    cands.sort((a, b) => b.score - a.score);
+    const all10 = Object.keys(E).map(k => grade(k, s)).filter(Boolean);
+    const cands = all10.filter(g => g.tier >= 0).sort((x, y) => y.tier - x.tier || y.overall - x.overall);
     for (const c of cands) {
       if (P.badges.length >= 1 + H.maxTags) break;
       if (P.badges.some(b => OPPOSITES.some(([x, y]) => (x === b.key && y === c.key) || (y === b.key && x === c.key)))) continue;
       P.badges.push(c);
     }
-    if (!P.badges.length) P.badges.push({key: "balanced", score: 0, ev: "No badge stood out against the rest of the league."});
+    if (!P.badges.length) P.badges.push({key: "balanced", tier: -1, ev: "No badge reached its first mark yet."});
+    const near = all10.filter(g => g.tier < 0 && g.prog >= 0.5 && !P.badges.some(b => b.key === g.key)).sort((x, y) => y.prog - x.prog)[0];
+    P.near = near || null;
     P.sliders = [
       {l: "Players", r: "Picks", p: PR.share(s.share)},
       {l: "Buying", r: "Selling", p: PR.net(s.net)},
@@ -824,7 +845,10 @@ function computeProfiles() {
 /* ---------- Trade Hub: views ---------- */
 const CHEV = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg>`;
 const bname = k => CFG.tradeHub.badges[k]?.name || k;
-const badgeHtml = (k, primary) => `<span class="tbadge ${primary ? "pri" : "btag"}">${esc(bname(k))}</span>`;
+const TIER_NAMES = ["Bronze", "Silver", "Gold", "Hall of Fame"], TIER_CLS = ["t-bronze", "t-silver", "t-gold", "t-hof"];
+const badgeHtml = (b, primary) => `<span class="tbadge ${b.tier >= 0 ? TIER_CLS[b.tier] : "btag"}${primary ? " big" : ""}">${esc(bname(b.key))}</span>`;
+const tierTag = t => t >= 0 ? `<i class="ttag ${TIER_CLS[t]}">${TIER_NAMES[t]}</i>` : `<span class="mut" style="font-size:.7rem">Not Yet Earned</span>`;
+const prog = (g, cls) => `<div class="pg"><i class="${cls}" style="width:${Math.round(g.prog * 100)}%"></i></div><div class="mut" style="font-size:.7rem">${g.tier === 3 ? "Top Tier Reached" : `${g.nextName} at ${g.nextText}`}</div>`;
 const barRow = (label, v, max, txt, href) => `<${href ? "a" : "div"} class="hbr"${href ? ` href="${esc(href)}"` : ""}><span class="hbl">${esc(label)}</span><span class="hbt"><i style="width:${max ? (100 * v / max).toFixed(1) : 0}%"></i></span><b>${esc(String(txt ?? v))}</b></${href ? "a" : "div"}>`;
 const scopeTxt = () => CFG.tradeHub.startSeason ? "Since " + CFG.tradeHub.startSeason : "All-Time";
 const assetLabel = m => m.k === "pick" ? (([s, r, o]) => `${s} ${ord(+r)} · ${teamUsername(s, o)}`)(m.id.split("-")) : aName(m);
@@ -935,7 +959,7 @@ function abbrMap(owners) {
 function viewProfiles() {
   const rows = HUB.owners.map(o => {
     const P = PROFILES.byOwner[o], s = P.s;
-    const bs = P.status === "ok" ? P.badges.map((b, i) => badgeHtml(b.key, i === 0)).join(" ") : `<span class="mut" style="font-size:.75rem">Not Enough Trades Yet</span>`;
+    const bs = P.status === "ok" ? P.badges.map(b => badgeHtml(b)).join(" ") : `<span class="mut" style="font-size:.75rem">Not Enough Trades Yet</span>`;
     return `<a class="prow" href="#hub/profile/${esc(o)}">${uav(o)}<span style="flex:1;min-width:0"><b>${esc(username(o))}</b><div class="mut" style="font-size:.75rem;margin:2px 0 6px">${s.n} Trade${s.n === 1 ? "" : "s"}</div>${bs}</span>${CHEV}</a>`;
   }).join("");
   $("#app").innerHTML = `<a href="#hub">← Trade Hub</a><h2>Manager Profiles</h2><div class="sub">Trade Badges, ${esc(scopeTxt())}</div>
@@ -948,31 +972,41 @@ function viewProfile(o) {
   if (!P) return viewProfiles();
   const s = P.s, ok = P.status === "ok";
   const ten = P.sliders.map(t => `<div class="ten"><div class="tl"><span>${t.l}</span><span>${t.r}</span></div><div class="tk"><i style="left:${(t.p * 100).toFixed(0)}%"></i></div></div>`).join("");
-  const ev = P.badges.map(b => `<div class="evl"><b>${esc(bname(b.key))}:</b> ${esc(b.ev)}</div>`).join("")
+  const ev = P.badges.map(b => `<div class="evl"><div class="evh"><b>${esc(bname(b.key))}</b>${tierTag(b.tier)}</div>${esc(b.ev)}${b.tier >= 0 ? prog(b, TIER_CLS[b.tier]) : ""}</div>`).join("")
+    + (P.near ? `<div class="evl"><div class="evh"><b>${esc(bname(P.near.key))}</b>${tierTag(-1)}</div>${esc(P.near.ev)}${prog(P.near, "t-bronze")}</div>` : "")
     + (s.top != null ? `<div class="evl"><b>Favorite Partner:</b> ${esc(username(s.top))}, ${s.topCount} trade${s.topCount === 1 ? "" : "s"}.</div>` : "");
   $("#app").innerHTML = `<a href="#hub/profiles">← Profiles</a><h2>Trade Profile</h2><div class="sub">Based on ${s.n} Trade${s.n === 1 ? "" : "s"} · ${esc(scopeTxt())}</div>
     <div class="card2 pc"><div style="display:flex;justify-content:center">${av(D.users?.[o]?.avatar ? `https://sleepercdn.com/avatars/thumbs/${D.users[o].avatar}` : null, username(o)).replace('class="av"', 'class="av" style="width:56px;height:56px;font-size:18px"')}</div>
       <div style="font-weight:700;font-size:1.05rem;margin-top:10px">${esc(username(o))}</div>
-      <div style="margin-top:14px">${ok ? badgeHtml(P.badges[0].key, true) : `<span class="tbadge btag">Not Enough Trades Yet</span>`}</div>
-      ${ok && P.badges.length > 1 ? `<div class="tagrow">${P.badges.slice(1).map(b => badgeHtml(b.key, false)).join("")}</div>` : ""}</div>
+      <div style="margin-top:14px">${ok ? badgeHtml(P.badges[0], true) : `<span class="tbadge btag">Not Enough Trades Yet</span>`}</div>
+      ${ok && P.badges.length > 1 ? `<div class="tagrow">${P.badges.slice(1).map(b => badgeHtml(b)).join("")}</div>` : ""}</div>
     ${ok ? `<div class="card2 pt"><div class="ttl" style="margin:0">Tendencies</div>${ten}</div>
     <div class="card2 pe"><div class="ttl">Why These Badges</div>${ev}</div>` : `<div class="card2"><p class="hint" style="margin:0">Profiles unlock after ${CFG.tradeHub.minTrades} trades.${s.top != null ? ` Favorite partner so far: ${esc(username(s.top))}.` : ""}</p></div>`}
     <a href="#hub/badges">How badges work ›</a>`;
 }
 
 function viewBadges() {
-  const H = CFG.tradeHub, q = H.percentile >= 0.75 && H.percentile <= 0.75 ? "top quarter" : `top ${Math.round((1 - H.percentile) * 100)}%`;
-  const rows = Object.entries(H.badges).filter(([, b]) => b.enabled !== false).map(([k, b], i) =>
-    `<div class="brow${i ? "" : " first"}"><span class="tbadge ${k === "balanced" ? "btag" : "pri"}">${esc(b.name)}</span><div class="mut">${esc(b.desc)}</div></div>`).join("");
+  const H = CFG.tradeHub;
+  const legend = TIER_NAMES.map((n, i) => `<span class="tbadge ${TIER_CLS[i]}">${n}</span>`).join("");
+  const rows = Object.entries(H.badges).filter(([, b]) => b.enabled !== false && b.marks).map(([k, b], i) => {
+    const tiles = b.marks.map((m, t) => `<div class="mk ${TIER_CLS[t]}"><small>${t === 3 ? "HoF" : TIER_NAMES[t]}</small><b>${esc(String(m))}${MARK_UNIT[k] || ""}</b></div>`).join("");
+    return `<div class="brow${i ? "" : " first"}"><span class="tbadge btag">${esc(b.name)}</span><div class="mut">${esc(b.desc)}</div>
+      <div class="mut" style="font-size:.7rem;margin:12px 0 6px">${esc(MARK_LABEL[k] || "")}</div><div class="mks">${tiles}</div></div>`;
+  }).join("");
   $("#app").innerHTML = `<a href="#hub">← Trade Hub</a><h2>Badges</h2><div class="sub">What Each Manager's Trading Earns</div>
+    <div class="card2"><div class="ttl">Four Tiers</div><div class="tagrow" style="justify-content:flex-start;flex-wrap:wrap;margin:0">${legend}</div>
+      <p class="hint" style="margin:10px 0 0">Each tile shows the mark for that tier. Hit a mark to earn it, and higher marks move you up.</p></div>
     <div class="card2" style="padding-top:2px;padding-bottom:2px">${rows}</div>
-    <div class="fine"><p>Finish in the ${q} of the league in a category to earn the badge.</p>
-      <p>Each manager shows one main badge plus up to ${H.maxTags} more.</p>
+    <div class="fine"><p>Reach the Bronze mark to earn a badge. Nothing is handed out for small numbers.</p>
+      <p>Your main badge is your highest tier, plus up to ${H.maxTags} more.</p>
       <p>Under ${H.minTrades} Trades: Not Enough Trades Yet.</p>
       <p>Opposite badges never share a profile.</p>
-      <p style="margin-top:14px">Wording is maintained by the league admin.</p></div>`;
+      <p style="margin-top:14px">Marks and wording are maintained by the league admin.</p></div>`;
 }
-
+const MARK_LABEL = {pick_hoarder: "Picks as a share of value acquired", all_in_buyer: "Net pick value sent out", rebuilder: "Years older, players sent vs. received",
+  consolidator: "Extra pieces sent per trade", trade_machine: "Trades per season", flipper: "Acquired assets re-traded within 30 days",
+  lone_wolf: "Trades per season, or fewer", trade_buddies: "Trades with one partner", draft_believer: "Picks kept and used", deadline_dealer: "Trades just before the deadline"};
+const MARK_UNIT = {pick_hoarder: "%", flipper: "%", trade_buddies: "%", draft_believer: "%", deadline_dealer: "%"};
 
 function renderNav(type) {
   const F = CFG.features, items = [["", "Search", ["", "player", "pick", "trade"]],
